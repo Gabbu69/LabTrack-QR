@@ -1,0 +1,7 @@
+{
+  "concept": "Tool-crib checkout counter",
+  "approved": true,
+  "approvalBasis": "Delegated selection after the user approved the complete visual brief",
+  "breakpoint": "1366x768",
+  "prompt": "Create a high-fidelity 1366x768 desktop web application UI comp for LabTrack QR. Structural concept B: TOOL-CRIB CHECKOUT COUNTER. Use the attached reference only as a material guide: bright white and silver surfaces, navy framing, cobalt controls, yellow warnings, square industrial controls, condensed headings, and clear body text. Build the dashboard around a two-sided checkout counter: a Ready for issue availability board, a central action stack, and a Custody now borrower-ticket stack. Integrate Total Tools, Available, Borrowed, Missing, and Active Transactions into one instrument ribbon. Include Borrow tools, Process return, a compact navigation rail, icon-plus-text statuses, and a persistent DEMO banner. Avoid generic card grids, dark cockpit styling, neon, gradients, compliance, calibration, multiple labs, photos, due dates, and tiny text. Flat front-on implementation-ready web screenshot."
+}

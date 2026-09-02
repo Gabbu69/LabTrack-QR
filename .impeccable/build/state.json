@@ -1,0 +1,437 @@
+{
+  "tool": "build-phase",
+  "version": 2,
+  "startedAt": "2026-09-02T06:49:06.340Z",
+  "comp": ".impeccable/mocks/comp-b-tool-crib-counter.png",
+  "direction": null,
+  "breakpoint": "1366x768",
+  "artifact": null,
+  "phase": "sections",
+  "phases": {
+    "comps": {
+      "status": "skipped",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [
+        {
+          "at": "2026-09-02T06:49:06.340Z",
+          "text": "started with an approved comp; the comp round happened before this state (surface round or manual)"
+        }
+      ],
+      "gate": null,
+      "forced": null
+    },
+    "spec": {
+      "status": "closed",
+      "openedAt": "2026-09-02T06:49:06.339Z",
+      "closedAt": "2026-09-02T06:51:10.308Z",
+      "attempts": 1,
+      "notes": [],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "26 regions, 0 plates, 13 text regions measured",
+        "at": "2026-09-02T06:51:10.307Z"
+      },
+      "forced": null
+    },
+    "plates": {
+      "status": "closed",
+      "openedAt": "2026-09-02T06:51:10.308Z",
+      "closedAt": "2026-09-02T06:51:21.038Z",
+      "attempts": 1,
+      "notes": [],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "no plates owed",
+        "at": "2026-09-02T06:51:21.038Z"
+      },
+      "forced": null
+    },
+    "hero": {
+      "status": "closed",
+      "openedAt": "2026-09-02T06:51:21.038Z",
+      "closedAt": "2026-09-02T07:19:06.801Z",
+      "attempts": 11,
+      "notes": [],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "hero 82% (match)",
+        "score": 0.8165,
+        "verdict": "match",
+        "report": ".impeccable\\review\\diff\\hero\\report.json",
+        "sideBySide": ".impeccable\\review\\diff\\hero\\side-by-side.png",
+        "worst": [
+          "inventory-heading drift 54%",
+          "page-title drift 65%",
+          "inventory-list drift 66%"
+        ],
+        "worstIds": [
+          "inventory-heading",
+          "page-title",
+          "inventory-list"
+        ],
+        "worstCrops": [
+          {
+            "id": "inventory-heading",
+            "verdict": "drift",
+            "score": {
+              "overall": 0.5358,
+              "structure": 0.5145,
+              "color": 0.7903,
+              "colorIntersection": 0.7456,
+              "paletteMatch": 0.8143,
+              "detail": 0.1447,
+              "detailRaw": 0.2645,
+              "detailAdded": 0.2396,
+              "bands": 0.5929
+            },
+            "file": ".impeccable\\review\\diff\\hero\\regions\\inventory-heading.png"
+          },
+          {
+            "id": "page-title",
+            "verdict": "drift",
+            "score": {
+              "overall": 0.6494,
+              "structure": 0.6249,
+              "color": 0.8748,
+              "colorIntersection": 0.7914,
+              "paletteMatch": 0.9197,
+              "detail": 0.4362,
+              "detailRaw": 0.4519,
+              "detailAdded": 0.0313,
+              "bands": 0.5286
+            },
+            "file": ".impeccable\\review\\diff\\hero\\regions\\page-title.png"
+          },
+          {
+            "id": "inventory-list",
+            "verdict": "drift",
+            "score": {
+              "overall": 0.6625,
+              "structure": 0.5865,
+              "color": 0.9034,
+              "colorIntersection": 0.8106,
+              "paletteMatch": 0.9534,
+              "detail": 0.4119,
+              "detailRaw": 0.4744,
+              "detailAdded": 0.125,
+              "bands": 0.9556
+            },
+            "file": ".impeccable\\review\\diff\\hero\\regions\\inventory-list.png"
+          }
+        ],
+        "advisories": [
+          "(advisory, above the 72% bar; fix in the polish pass before responsive) 1 reading:",
+          "  text page-title: cap height 27.5px in the build, 39px in the comp (-29%); set font-size so the cap height renders at 39px (font-match ranked Saira Condensed 700 at 56px)",
+          "(advisory, unchanged for 3+ attempts) text demo-banner: letter-spacing is wider than the comp's (gap 0.190 vs 0.120 of the cap height); set letter-spacing to close it by about 1px",
+          "(advisory, unchanged for 3+ attempts) text metric-active: the face renders 26% heavier than the comp's (ink density 0.67 vs 0.53); drop a weight step or use the ranked face"
+        ],
+        "regionVerdicts": {
+          "sidebar-brand": "drift",
+          "sidebar-navigation": "drift",
+          "demo-banner": "match",
+          "utility-status": "drift",
+          "page-title": "drift",
+          "scan-prompt": "drift",
+          "metric-total": "drift",
+          "metric-available": "drift",
+          "metric-borrowed": "drift",
+          "metric-missing": "drift",
+          "metric-active": "drift",
+          "metric-link": "drift",
+          "inventory-heading": "drift",
+          "inventory-list": "drift",
+          "inventory-link": "drift",
+          "counter-actions": "drift",
+          "borrow-action": "drift",
+          "custody-heading": "drift",
+          "custody-list": "drift",
+          "custody-link": "drift"
+        },
+        "at": "2026-09-02T07:19:06.799Z"
+      },
+      "forced": null,
+      "readingsSeen": {
+        "control inventory-link: its rule sits 39px into the box in the comp and 26px in the build (-13px), so the strip is shorter than the comp's; match the height, not only the position": 2,
+        "control mobile-scan-helper: its rule sits 12px into the box in the comp and 19px in the build (+7px), so the strip is taller than the comp's; match the height, not only the position": 2,
+        "control custody-link: its rule sits 39px into the box in the comp and 45px in the build (+6px), so the strip is taller than the comp's; match the height, not only the position": 2,
+        "text demo-banner: cap height 9.3px in the build, 12.5px in the comp (-26%); set font-size so the cap height renders at 12.5px": 1,
+        "text page-title: cap height 23.6px in the build, 39px in the comp (-39%); set font-size so the cap height renders at 39px (font-match ranked Saira Condensed 700 at 56px)": 1,
+        "text page-greeting: cap height 23.7px in the build, 39px in the comp (-39%); set font-size so the cap height renders at 39px": 1,
+        "text metric-active: cap height 8.4px in the build, 11px in the comp (-24%); set font-size so the cap height renders at 11px": 2,
+        "text inventory-heading: letter-spacing is wider than the comp's (gap 0.176 vs 0.109 of the cap height); set letter-spacing to close it by about 1px": 2,
+        "text actions-heading: cap height 17.1px in the build, 11.8px in the comp (+45%); set font-size so the cap height renders at 11.8px": 2,
+        "text custody-heading: letter-spacing is wider than the comp's (gap 0.149 vs 0.092 of the cap height); set letter-spacing to close it by about 1px": 2,
+        "text actions-heading: 1 line in the build, 2 in the comp; the measure (max-width, font-size, letter-spacing) wraps it differently, so the block is a different shape": 4,
+        "control inventory-link: its rule sits 39px into the box in the comp and 4px in the build (-35px), so the strip is shorter than the comp's; match the height, not only the position": 4,
+        "control mobile-scan-helper: its rule sits 12px into the box in the comp and 44px in the build (+32px), so the strip is taller than the comp's; match the height, not only the position": 4,
+        "control custody-link: its rule sits 39px into the box in the comp and 4px in the build (-35px), so the strip is shorter than the comp's; match the height, not only the position": 4,
+        "text demo-banner: letter-spacing is wider than the comp's (gap 0.212 vs 0.120 of the cap height); set letter-spacing to close it by about 1px": 1,
+        "text page-title: cap height 26.5px in the build, 39px in the comp (-32%); set font-size so the cap height renders at 39px (font-match ranked Saira Condensed 700 at 56px)": 1,
+        "text page-greeting: cap height 26.5px in the build, 39px in the comp (-32%); set font-size so the cap height renders at 39px": 1,
+        "text metric-borrowed: cap height 7.4px in the build, 11px in the comp (-33%); set font-size so the cap height renders at 11px": 1,
+        "text demo-banner: cap height 18.7px in the build, 12.5px in the comp (+50%); set font-size so the cap height renders at 12.5px": 1,
+        "text utility-status: letter-spacing is tighter than the comp's (gap 0.035 vs 0.088 of the cap height); set letter-spacing to open it by about 1px": 1,
+        "text page-title: letter-spacing is wider than the comp's (gap 0.217 vs 0.128 of the cap height); set letter-spacing to close it by about 3px": 1,
+        "text page-greeting: letter-spacing is wider than the comp's (gap 0.217 vs 0.128 of the cap height); set letter-spacing to close it by about 3px": 1,
+        "text metric-active: the face renders 26% heavier than the comp's (ink density 0.67 vs 0.53); drop a weight step or use the ranked face": 8,
+        "control scan-prompt: its rule sits 11px into the box in the comp and 4px in the build (-7px), so the strip is shorter than the comp's; match the height, not only the position": 1,
+        "text demo-banner: letter-spacing is wider than the comp's (gap 0.190 vs 0.120 of the cap height); set letter-spacing to close it by about 1px": 7,
+        "text page-title: cap height 28.5px in the build, 39px in the comp (-27%); set font-size so the cap height renders at 39px (font-match ranked Saira Condensed 700 at 56px)": 6,
+        "control scan-prompt: its rule sits 11px into the box in the comp and 2px in the build (-9px), so the strip is shorter than the comp's; match the height, not only the position": 1,
+        "text actions-heading: letter-spacing is wider than the comp's (gap 0.186 vs 0.124 of the cap height); set letter-spacing to close it by about 1px": 1,
+        "control scan-prompt: its rule sits 11px into the box in the comp and 18px in the build (+7px), so the strip is taller than the comp's; match the height, not only the position": 1,
+        "control mobile-scan-helper: its rule sits 12px into the box in the comp and 1px in the build (-11px), so the strip is shorter than the comp's; match the height, not only the position": 1,
+        "text mobile-scan-helper: cap height 8.2px in the build, 10.7px in the comp (-23%); set font-size so the cap height renders at 10.7px": 2,
+        "text mobile-scan-helper: 2 lines in the build, 3 in the comp; the measure (max-width, font-size, letter-spacing) wraps it differently, so the block is a different shape": 2,
+        "text mobile-scan-helper: its first line starts 23px lower than in the comp (32px vs 9px into the region box); the spacing above it is too large": 2,
+        "text page-title: cap height 27.5px in the build, 39px in the comp (-29%); set font-size so the cap height renders at 39px (font-match ranked Saira Condensed 700 at 56px)": 1
+      },
+      "records": 1,
+      "history": [
+        {
+          "at": "2026-09-02T07:12:58.923Z",
+          "score": 0.8083,
+          "worstIds": [
+            "return-action",
+            "mobile-scan-helper",
+            "actions-heading"
+          ],
+          "regionVerdicts": {
+            "sidebar-brand": "drift",
+            "sidebar-navigation": "drift",
+            "demo-banner": "match",
+            "utility-status": "drift",
+            "page-title": "drift",
+            "scan-prompt": "drift",
+            "metric-total": "drift",
+            "metric-available": "drift",
+            "metric-borrowed": "drift",
+            "metric-missing": "drift",
+            "metric-active": "drift",
+            "metric-link": "drift",
+            "inventory-heading": "drift",
+            "inventory-list": "drift",
+            "inventory-link": "drift",
+            "actions-heading": "drift",
+            "borrow-action": "drift",
+            "return-action": "contradicted",
+            "mobile-scan-helper": "missing",
+            "custody-heading": "drift",
+            "custody-list": "drift",
+            "custody-link": "drift"
+          },
+          "artifactHash": null
+        },
+        {
+          "at": "2026-09-02T07:14:59.808Z",
+          "score": 0.8082,
+          "worstIds": [
+            "return-action",
+            "mobile-scan-helper",
+            "actions-heading"
+          ],
+          "regionVerdicts": {
+            "sidebar-brand": "drift",
+            "sidebar-navigation": "drift",
+            "demo-banner": "match",
+            "utility-status": "drift",
+            "page-title": "drift",
+            "scan-prompt": "drift",
+            "metric-total": "drift",
+            "metric-available": "drift",
+            "metric-borrowed": "drift",
+            "metric-missing": "drift",
+            "metric-active": "drift",
+            "metric-link": "drift",
+            "inventory-heading": "drift",
+            "inventory-list": "drift",
+            "inventory-link": "drift",
+            "actions-heading": "drift",
+            "borrow-action": "drift",
+            "return-action": "contradicted",
+            "mobile-scan-helper": "missing",
+            "custody-heading": "drift",
+            "custody-list": "drift",
+            "custody-link": "drift"
+          },
+          "artifactHash": null
+        },
+        {
+          "at": "2026-09-02T07:15:49.901Z",
+          "score": 0.8082,
+          "worstIds": [
+            "return-action",
+            "mobile-scan-helper",
+            "actions-heading"
+          ],
+          "regionVerdicts": {
+            "sidebar-brand": "drift",
+            "sidebar-navigation": "drift",
+            "demo-banner": "match",
+            "utility-status": "drift",
+            "page-title": "drift",
+            "scan-prompt": "drift",
+            "metric-total": "drift",
+            "metric-available": "drift",
+            "metric-borrowed": "drift",
+            "metric-missing": "drift",
+            "metric-active": "drift",
+            "metric-link": "drift",
+            "inventory-heading": "drift",
+            "inventory-list": "drift",
+            "inventory-link": "drift",
+            "actions-heading": "drift",
+            "borrow-action": "drift",
+            "return-action": "contradicted",
+            "mobile-scan-helper": "missing",
+            "custody-heading": "drift",
+            "custody-list": "drift",
+            "custody-link": "drift"
+          },
+          "artifactHash": null
+        },
+        {
+          "at": "2026-09-02T07:16:27.448Z",
+          "score": 0.8082,
+          "worstIds": [
+            "metric-borrowed",
+            "metric-available",
+            "inventory-heading"
+          ],
+          "regionVerdicts": {
+            "sidebar-brand": "drift",
+            "sidebar-navigation": "drift",
+            "sidebar-logout": "missing",
+            "demo-banner": "match",
+            "utility-status": "drift",
+            "page-title": "drift",
+            "scan-prompt": "drift",
+            "metric-total": "drift",
+            "metric-available": "drift",
+            "metric-borrowed": "drift",
+            "metric-missing": "drift",
+            "metric-active": "drift",
+            "metric-link": "drift",
+            "inventory-heading": "drift",
+            "inventory-list": "drift",
+            "inventory-link": "drift",
+            "counter-actions": "drift",
+            "borrow-action": "drift",
+            "custody-heading": "drift",
+            "custody-list": "drift",
+            "custody-link": "drift"
+          },
+          "artifactHash": null
+        },
+        {
+          "at": "2026-09-02T07:17:43.761Z",
+          "score": 0.81,
+          "worstIds": [
+            "inventory-heading",
+            "metric-available",
+            "page-title"
+          ],
+          "regionVerdicts": {
+            "sidebar-brand": "drift",
+            "sidebar-navigation": "drift",
+            "sidebar-logout": "missing",
+            "demo-banner": "match",
+            "utility-status": "drift",
+            "page-title": "drift",
+            "scan-prompt": "drift",
+            "metric-total": "drift",
+            "metric-available": "drift",
+            "metric-borrowed": "drift",
+            "metric-missing": "drift",
+            "metric-active": "drift",
+            "metric-link": "drift",
+            "inventory-heading": "contradicted",
+            "inventory-list": "drift",
+            "inventory-link": "drift",
+            "counter-actions": "drift",
+            "borrow-action": "drift",
+            "custody-heading": "drift",
+            "custody-list": "drift",
+            "custody-link": "drift"
+          },
+          "artifactHash": null
+        },
+        {
+          "at": "2026-09-02T07:19:06.800Z",
+          "score": 0.8165,
+          "worstIds": [
+            "inventory-heading",
+            "page-title",
+            "inventory-list"
+          ],
+          "regionVerdicts": {
+            "sidebar-brand": "drift",
+            "sidebar-navigation": "drift",
+            "demo-banner": "match",
+            "utility-status": "drift",
+            "page-title": "drift",
+            "scan-prompt": "drift",
+            "metric-total": "drift",
+            "metric-available": "drift",
+            "metric-borrowed": "drift",
+            "metric-missing": "drift",
+            "metric-active": "drift",
+            "metric-link": "drift",
+            "inventory-heading": "drift",
+            "inventory-list": "drift",
+            "inventory-link": "drift",
+            "counter-actions": "drift",
+            "borrow-action": "drift",
+            "custody-heading": "drift",
+            "custody-list": "drift",
+            "custody-link": "drift"
+          },
+          "artifactHash": null
+        }
+      ]
+    },
+    "sections": {
+      "status": "open",
+      "openedAt": "2026-09-02T07:19:06.801Z",
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    },
+    "motion": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    },
+    "responsive": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    },
+    "review": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    }
+  },
+  "finish": null,
+  "plates": {}
+}

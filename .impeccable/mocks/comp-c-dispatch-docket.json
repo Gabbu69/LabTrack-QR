@@ -1,0 +1,6 @@
+{
+  "concept": "Dispatch docket and maintenance logbook",
+  "approved": false,
+  "breakpoint": "1366x768",
+  "prompt": "Create a high-fidelity 1366x768 desktop web application UI comp for LabTrack QR. Structural concept C: DISPATCH DOCKET AND MAINTENANCE LOGBOOK. Use the attached reference only as a material guide: bright white and silver surfaces, navy structure, cobalt actions, yellow warnings, square industrial controls, condensed headings, and readable body text. Organize the dashboard as a crisp dispatch docket with a shift strip, the five required metrics, a dominant active-checkout ledger, and a slim action tower for Borrow tools, Process return, Open scanner, and missing-tool review. Include a compact navigation rail, icon-plus-text statuses, and a persistent DEMO banner. Avoid generic card grids, dark cockpit styling, neon, gradients, compliance, calibration, multiple labs, aircraft photos, due dates, and tiny text. Flat front-on implementation-ready web screenshot."
+}

@@ -1,0 +1,6 @@
+{
+  "concept": "Flight-line dispatch desk",
+  "approved": false,
+  "breakpoint": "1366x768",
+  "prompt": "Create a high-fidelity 1366x768 desktop web application UI comp for LabTrack QR. Structural concept A: FLIGHT-LINE DISPATCH DESK. Use the attached reference only as a material guide: bright white and silver surfaces, navy rails, cobalt controls, yellow warnings, square industrial controls, condensed headings, and clear body text. Show a Tool Custodian dashboard with a left navigation, status strip, a workflow runway from identify student to scan tools to confirm, a horizontal active-custody queue, the five required metrics, Borrow tools and Process return actions, icon-plus-text statuses, and a persistent DEMO banner. Avoid generic card grids, dark cockpit styling, neon, gradients, compliance, calibration, multiple labs, photos, and tiny text. Flat front-on implementation-ready web screenshot."
+}

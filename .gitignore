@@ -1,0 +1,30 @@
+# dependencies
+/node_modules
+
+# next
+/.next
+/out
+
+# tests
+/coverage
+/playwright-report
+/test-results
+
+# local environment
+.env*
+!.env.example
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# local Supabase state
+/supabase/.branches
+/supabase/.temp
+
+# system
+.DS_Store
+Thumbs.db
