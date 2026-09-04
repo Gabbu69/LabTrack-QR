@@ -169,14 +169,17 @@ begin
     new.id,
     lower(new.email),
     coalesce(nullif(trim(new.raw_user_meta_data ->> 'full_name'), ''), 'Pending Student'),
-    'student',
-    'pending',
+    case when new.raw_app_meta_data ->> 'labtrack_staff_role' in ('custodian', 'instructor')
+      then (new.raw_app_meta_data ->> 'labtrack_staff_role')::public.app_role else 'student' end,
+    case when new.raw_app_meta_data ->> 'labtrack_staff_role' in ('custodian', 'instructor')
+      then 'active'::public.profile_status else 'pending'::public.profile_status end,
     nullif(trim(new.raw_user_meta_data ->> 'student_id'), ''),
     nullif(trim(new.raw_user_meta_data ->> 'year_section'), ''),
     nullif(trim(new.raw_user_meta_data ->> 'group_number'), ''),
     nullif(trim(new.raw_user_meta_data ->> 'contact_number'), ''),
-    'operational',
-    false
+    case when new.raw_app_meta_data ->> 'labtrack_data_scope' = 'demo'
+      then 'demo'::public.data_scope else 'operational'::public.data_scope end,
+    (new.raw_app_meta_data ->> 'labtrack_staff_role' in ('custodian', 'instructor'))
   );
   return new;
 end;
@@ -228,6 +231,19 @@ as $$
   );
 $$;
 
+create or replace function private.is_current_profile_active()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid()) and p.status = 'active'
+  );
+$$;
+
 create or replace function private.require_custodian()
 returns public.profiles
 language plpgsql
@@ -253,8 +269,18 @@ security definer
 set search_path = ''
 as $$
 begin
-  if old.role = 'custodian' and old.status = 'active'
-     and (tg_op = 'DELETE' or new.role <> 'custodian' or new.status <> 'active') then
+  if tg_op = 'DELETE' and old.role = 'custodian' and old.status = 'active' then
+    if not exists (
+      select 1 from public.profiles p
+      where p.role = 'custodian' and p.status = 'active'
+        and p.data_scope = old.data_scope and p.id <> old.id
+    ) then
+      raise exception 'The last active custodian cannot be deactivated' using errcode = '23514';
+    end if;
+    return old;
+  end if;
+  if tg_op = 'UPDATE' and old.role = 'custodian' and old.status = 'active'
+     and (new.role <> 'custodian' or new.status <> 'active') then
     if not exists (
       select 1 from public.profiles p
       where p.role = 'custodian' and p.status = 'active'
@@ -263,13 +289,12 @@ begin
       raise exception 'The last active custodian cannot be deactivated' using errcode = '23514';
     end if;
   end if;
-  if tg_op = 'DELETE' then return old; end if;
   return new;
 end;
 $$;
 
 create trigger profiles_guard_last_custodian
-before update of role, status or delete on public.profiles
+before update or delete on public.profiles
 for each row execute function private.guard_last_custodian();
 
 create or replace function private.enforce_transaction_scope()
@@ -336,7 +361,7 @@ using ((select private.is_active_staff_for_scope(data_scope)));
 
 create policy transactions_read_authorized on public.transactions for select to authenticated
 using (
-  borrower_id = (select auth.uid())
+  (borrower_id = (select auth.uid()) and (select private.is_current_profile_active()))
   or (select private.is_active_staff_for_scope(data_scope))
 );
 
@@ -345,7 +370,7 @@ using (
   exists (
     select 1 from public.transactions tx
     where tx.id = transaction_id
-      and (tx.borrower_id = (select auth.uid()) or (select private.is_active_staff_for_scope(tx.data_scope)))
+      and ((tx.borrower_id = (select auth.uid()) and (select private.is_current_profile_active())) or (select private.is_active_staff_for_scope(tx.data_scope)))
   )
 );
 
@@ -373,7 +398,7 @@ begin
       year_section = nullif(trim(p_year_section), ''), group_number = nullif(trim(p_group_number), ''),
       contact_number = nullif(trim(p_contact_number), ''),
       photo_path = coalesce(p_photo_path, photo_path)
-  where id = (select auth.uid())
+  where id = (select auth.uid()) and status <> 'disabled'
   returning * into result;
   if result.id is null then raise exception 'Profile not found'; end if;
   return result;
@@ -392,7 +417,8 @@ returns void language plpgsql security definer set search_path = ''
 as $$
 begin
   if (select auth.uid()) is null then raise exception 'Authentication required' using errcode = '42501'; end if;
-  update public.profiles set must_change_password = false where id = (select auth.uid());
+  update public.profiles set must_change_password = false where id = (select auth.uid()) and status <> 'disabled';
+  if not found then raise exception 'Profile is disabled or missing' using errcode = '42501'; end if;
 end;
 $$;
 
@@ -642,7 +668,7 @@ as $$ select private.delete_unused_tool_impl($1); $$;
 
 revoke all on all functions in schema private from public, anon;
 grant execute on function private.current_profile(), private.is_active_staff_for_scope(public.data_scope),
-  private.is_active_custodian_for_scope(public.data_scope) to authenticated;
+  private.is_active_custodian_for_scope(public.data_scope), private.is_current_profile_active() to authenticated;
 grant execute on function private.update_my_profile_impl(text,text,text,text,text,text), private.complete_password_change_impl(),
   private.set_profile_status_impl(uuid,public.profile_status), private.create_tool_batch_impl(text,text,text,integer,text,public.tool_condition),
   private.borrow_tools_impl(uuid,uuid[]), private.return_tools_impl(uuid,jsonb), private.mark_items_missing_impl(uuid[],text),
@@ -659,7 +685,7 @@ values ('profile-photos', 'profile-photos', false, 2097152, array['image/jpeg','
 on conflict (id) do update set public = excluded.public, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
 
 create policy profile_photos_owner_read on storage.objects for select to authenticated
-using (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = (select auth.uid())::text);
+using (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = (select auth.uid())::text and (select private.is_current_profile_active()));
 create policy profile_photos_staff_read on storage.objects for select to authenticated
 using (
   bucket_id = 'profile-photos' and exists (
@@ -669,12 +695,12 @@ using (
   )
 );
 create policy profile_photos_owner_insert on storage.objects for insert to authenticated
-with check (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = (select auth.uid())::text);
+with check (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = (select auth.uid())::text and (select private.is_current_profile_active()));
 create policy profile_photos_owner_update on storage.objects for update to authenticated
-using (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = (select auth.uid())::text)
-with check (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = (select auth.uid())::text);
+using (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = (select auth.uid())::text and (select private.is_current_profile_active()))
+with check (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = (select auth.uid())::text and (select private.is_current_profile_active()));
 create policy profile_photos_owner_delete on storage.objects for delete to authenticated
-using (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = (select auth.uid())::text);
+using (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = (select auth.uid())::text and (select private.is_current_profile_active()));
 
 comment on table public.profiles is 'Application identities; roles and data scope are database-controlled.';
 comment on table public.tools is 'One row per physical laboratory tool asset.';

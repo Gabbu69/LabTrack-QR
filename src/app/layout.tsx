@@ -6,16 +6,16 @@ import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
   title: {
-    default: "LabTrack QR",
-    template: "%s | LabTrack QR",
+    default: "AISAT Davao LabTrack QR",
+    template: "%s | AISAT Davao LabTrack QR",
   },
-  description: "QR-based laboratory tool tracking and borrowing management system.",
+  description: "AISAT Davao QR-based aviation laboratory tool tracking and borrowing management system.",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#081836",
+  themeColor: "#07577f",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

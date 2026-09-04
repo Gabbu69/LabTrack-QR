@@ -47,7 +47,8 @@ Success means a nontechnical student can demonstrate the complete flow over HTTP
 - Product name: LabTrack QR.
 - Description: QR-Based Laboratory Tool Tracking and Borrowing Management System.
 - Voice: concise, calm, direct, and understandable to nontechnical students.
-- Visual direction: a bright tool-control station with white and silver surfaces, navy structure, cobalt actions, yellow warnings, square industrial controls, condensed display headings, readable body copy, and icon-plus-text statuses. It must not become a dark cockpit, neon QR-tech interface, or generic dashboard-card grid.
+- Institutional presentation: AISAT Davao–inspired school identity using an original QR-corner and aircraft LabTrack mark plus the school’s recognizable cyan-blue, neutral silver, black, and white cues. The application must not claim to be an official AISAT product or reproduce the school logo as a new product mark.
+- Visual direction: a bright aviation tool-control station with white and silver surfaces, deep flight-blue structure, cyan identity accents, blue actions, yellow reserved for warnings/demo state, square industrial controls, condensed display headings, readable body copy, and icon-plus-text statuses. It must not become a dark cockpit, neon QR-tech interface, or generic dashboard-card grid.
 
 ## Security and Evidence Boundaries
 

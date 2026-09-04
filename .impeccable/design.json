@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-04T03:00:00Z",
+  "title": "Design System: AISAT Davao LabTrack QR",
+  "extensions": {
+    "colorMeta": {
+      "structure-navy": { "role": "primary", "displayName": "AISAT Deep Flight Blue", "canonical": "#06344f", "tonalRamp": ["#031923", "#06344f", "#07577f", "#0878ad", "#20b0e0", "#7ed5ee", "#c9edf8", "#f2fbfe"] },
+      "action-cobalt": { "role": "primary", "displayName": "Accessible Flight Blue", "canonical": "#0878ad", "tonalRamp": ["#031923", "#06344f", "#07577f", "#0878ad", "#20b0e0", "#7ed5ee", "#c9edf8", "#f2fbfe"] },
+      "aisat-flight-blue": { "role": "secondary", "displayName": "AISAT Flight Cyan", "canonical": "#20b0e0", "tonalRamp": ["#06344f", "#07577f", "#0878ad", "#20b0e0", "#55c5e8", "#9ce0f2", "#dff5fc", "#f4fcfe"] },
+      "institutional-silver": { "role": "neutral", "displayName": "Institutional Silver", "canonical": "#a3afb4", "tonalRamp": ["#202326", "#465158", "#6f7d84", "#a3afb4", "#c0c9cd", "#dbe1e4", "#edf1f3", "#fafbfc"] },
+      "caution-yellow": { "role": "tertiary", "displayName": "Caution Tape Yellow", "canonical": "#f7c809", "tonalRamp": ["#2b2200", "#5c4900", "#927500", "#c9a300", "#f7c809", "#fadd5d", "#ffed9f", "#fff9df"] },
+      "work-surface": { "role": "neutral", "displayName": "Silver Work Surface", "canonical": "#f2f7fa", "tonalRamp": ["#202326", "#465158", "#6f7d84", "#a3afb4", "#c6d1d7", "#dce6eb", "#ebf2f6", "#f2f7fa"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Station Display", "purpose": "Condensed control-station headings and metrics." },
+      "body": { "displayName": "Readable Operations", "purpose": "Forms, instructions, tables, and recovery copy." },
+      "label": { "displayName": "Instrument Label", "purpose": "Uppercase eyebrow, state, and navigation labels." }
+    },
+    "shadows": [
+      { "name": "overlay-only", "value": "0 10px 30px rgba(8,24,54,.18)", "purpose": "Temporary password popover only; cards remain flat." }
+    ],
+    "motion": [
+      { "name": "control-response", "value": "150ms ease-out", "purpose": "Hover and focus feedback on operational controls." }
+    ],
+    "breakpoints": [
+      { "name": "compact-desktop", "value": "1100px" },
+      { "name": "mobile-counter", "value": "720px" }
+    ]
+  },
+  "components": [
+    { "name": "Primary Button", "kind": "button", "refersTo": "button-primary", "description": "Committed operational action.", "html": "<button class=\"ds-button-primary\">CONFIRM CHECKOUT</button>", "css": ".ds-button-primary{min-height:44px;padding:10px 17px;border:1px solid #0878ad;border-radius:5px;background:#0878ad;color:#fff;font:750 14px Inter,sans-serif}.ds-button-primary:hover{background:#07577f}.ds-button-primary:focus-visible{outline:3px solid #f7c809;outline-offset:3px}" },
+    { "name": "Secondary Button", "kind": "button", "refersTo": "button-secondary", "description": "Reversible or supporting action.", "html": "<button class=\"ds-button-secondary\">VIEW INVENTORY</button>", "css": ".ds-button-secondary{min-height:44px;padding:10px 17px;border:1px solid #8ba4b0;border-radius:5px;background:#fff;color:#07577f;font:750 14px Inter,sans-serif}.ds-button-secondary:hover{border-color:#0878ad;background:#f2fbfe}.ds-button-secondary:focus-visible{outline:3px solid #f7c809;outline-offset:3px}" },
+    { "name": "Text Field", "kind": "input", "description": "Visible-label operations input.", "html": "<label class=\"ds-field\"><span>ASSET CODE</span><input value=\"DM-001\"></label>", "css": ".ds-field{display:grid;gap:7px;color:#0a1220;font:700 13px Inter,sans-serif}.ds-field input{min-height:46px;padding:10px 12px;border:1px solid #aeb8c7;border-radius:5px;background:#fff;color:#0a1220;font:450 14px Inter,sans-serif}.ds-field input:focus-visible{outline:3px solid #f7c809;outline-offset:3px}" },
+    { "name": "Status Chip", "kind": "chip", "description": "Text and dot communicate state without color alone.", "html": "<span class=\"ds-chip\"><i></i>AVAILABLE</span>", "css": ".ds-chip{min-height:26px;padding:3px 9px;display:inline-flex;align-items:center;gap:6px;border-radius:4px;background:#e8f6ec;color:#15652d;font:700 12px/1 'Saira Condensed',sans-serif}.ds-chip i{width:7px;height:7px;border-radius:50%;background:currentColor}" },
+    { "name": "Counter Card", "kind": "card", "refersTo": "content-card", "description": "Flat bordered work-surface container.", "html": "<section class=\"ds-card\"><h2>READY FOR ISSUE</h2><p>Tools available by category</p></section>", "css": ".ds-card{padding:22px;border:1px solid #cbd2db;border-radius:8px;background:#fff;color:#0a1220}.ds-card h2{margin:0;font:700 24px/1 'Saira Condensed',sans-serif}.ds-card p{margin:6px 0 0;color:#536172;font:450 13px/1.5 Inter,sans-serif}" },
+    { "name": "Active Navigation", "kind": "nav", "description": "High-confidence active station destination.", "html": "<a class=\"ds-nav\" href=\"#\">DASHBOARD</a>", "css": ".ds-nav{min-height:50px;padding:0 16px;display:inline-flex;align-items:center;border-radius:4px;background:#0878ad;color:#fff;font:700 19px/1 'Saira Condensed',sans-serif;text-decoration:none;box-shadow:inset 4px 0 #20b0e0}.ds-nav:hover{background:#07577f}.ds-nav:focus-visible{outline:3px solid #f7c809;outline-offset:3px}" }
+  ],
+  "narrative": {
+    "northStar": "The AISAT Flight-Line Tool Crib",
+    "overview": "LabTrack QR translates an orderly AISAT Davao aviation laboratory issue counter into a browser: bright work surfaces, deep flight-blue structure, cyan aviation identity, and disciplined semantic color. The custom aircraft-and-QR-corners mark is distinct from the official AISAT logo.",
+    "keyCharacteristics": ["Bright white and silver working surfaces held by deep flight blue", "AISAT cyan-blue for identity and darker blue for accessible actions", "An original aircraft-and-QR-corners LabTrack mark", "Yellow reserved for warnings, focus, and demo identity", "Fluid desktop density with a labeled mobile menu and single-column workflow"],
+    "rules": [
+      { "name": "The Signal Discipline Rule", "body": "Cyan communicates school identity, darker blue means action, yellow means attention, green means serviceable or complete, and orange/red means exception.", "section": "colors" },
+      { "name": "The Two-Voice Rule", "body": "Use condensed type for headings, metrics, navigation, and status labels; use Inter for every sentence a user must comprehend.", "section": "typography" },
+      { "name": "The Countertop Rule", "body": "Operational cards sit on the work surface with borders, not floating ambient shadows.", "section": "elevation" }
+    ],
+    "dos": ["Do make the next physical action unmistakable.", "Do show asset codes in monospace and preserve their visual priority.", "Do pair every color state with text and, where useful, an icon.", "Do keep fictional records under the persistent yellow DEMO banner.", "Do keep the original flight mark visually distinct from the official AISAT logo."],
+    "donts": ["Don't turn the interface into a dark cockpit, neon scanner, or generic SaaS card grid.", "Don't embed scanners in the dashboard; route users into Borrow or Return.", "Don't infer missing status from an unscanned partial return.", "Don't use decorative motion that delays counter work or ignores reduced-motion preferences.", "Don't imply institutional endorsement or aviation regulatory approval."]
+  }
+}

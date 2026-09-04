@@ -6,7 +6,7 @@
   "direction": null,
   "breakpoint": "1366x768",
   "artifact": null,
-  "phase": "sections",
+  "phase": "review",
   "phases": {
     "comps": {
       "status": "skipped",
@@ -396,42 +396,78 @@
       ]
     },
     "sections": {
-      "status": "open",
+      "status": "closed",
       "openedAt": "2026-09-02T07:19:06.801Z",
-      "closedAt": null,
-      "attempts": 0,
-      "notes": [],
-      "gate": null,
+      "closedAt": "2026-09-04T02:10:15.673Z",
+      "attempts": 1,
+      "notes": [
+        {
+          "at": "2026-09-04T02:10:14.912Z",
+          "text": "Completed role-specific portal surfaces, inventory, reports, profiles, QR labels, and guided scan workflows in the approved tool-crib visual system."
+        }
+      ],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "no mechanical gate",
+        "at": "2026-09-04T02:10:15.672Z"
+      },
       "forced": null
     },
     "motion": {
-      "status": "pending",
-      "openedAt": null,
-      "closedAt": null,
-      "attempts": 0,
-      "notes": [],
-      "gate": null,
+      "status": "closed",
+      "openedAt": "2026-09-04T02:10:15.673Z",
+      "closedAt": "2026-09-04T02:10:17.006Z",
+      "attempts": 1,
+      "notes": [
+        {
+          "at": "2026-09-04T02:10:16.470Z",
+          "text": "Kept motion restrained for an operational counter: fast hover/focus feedback only, explicit camera state, and a complete prefers-reduced-motion override."
+        }
+      ],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "no mechanical gate",
+        "at": "2026-09-04T02:10:17.005Z"
+      },
       "forced": null
     },
     "responsive": {
-      "status": "pending",
-      "openedAt": null,
-      "closedAt": null,
-      "attempts": 0,
-      "notes": [],
-      "gate": null,
+      "status": "closed",
+      "openedAt": "2026-09-04T02:10:17.006Z",
+      "closedAt": "2026-09-04T02:24:50.097Z",
+      "attempts": 4,
+      "notes": [
+        {
+          "at": "2026-09-04T02:21:45.453Z",
+          "text": "Bounded responsive QA passed manually at 1366x768 and 390x844 with no horizontal overflow, no sub-44px operational targets, no browser errors, and zero WCAG A/AA axe violations. The comp gate still flags six dynamic/copy regions after fluid scaling even though the full-page comparison remains visually coherent."
+        }
+      ],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "desktop 80% (match)",
+        "score": 0.8004,
+        "sideBySide": ".impeccable\\review\\diff\\desktop\\side-by-side.png",
+        "at": "2026-09-04T02:24:50.095Z"
+      },
       "forced": null
     },
     "review": {
-      "status": "pending",
-      "openedAt": null,
-      "closedAt": null,
+      "status": "closed",
+      "openedAt": "2026-09-04T02:24:50.097Z",
+      "closedAt": "2026-09-04T02:38:05.699Z",
       "attempts": 0,
       "notes": [],
       "gate": null,
       "forced": null
     }
   },
-  "finish": null,
+  "finish": {
+    "disposition": "ship",
+    "at": "2026-09-04T02:38:05.698Z",
+    "phaseAtFinish": "review"
+  },
   "plates": {}
 }

@@ -1,0 +1,7 @@
+import Link from "next/link";
+import { ArrowRight, PackageCheck, RotateCcw, ScanLine } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { requireCustodian } from "@/lib/auth";
+
+export const metadata = { title: "QR Scanner" };
+export default async function ScanPage() { await requireCustodian(); return <div className="page-wrap narrow-page"><PageHeader eyebrow="SCANNER HUB" title="CHOOSE A WORKFLOW" description="The scanner opens inside a guided process so every scan has a clear purpose." /><section className="choice-grid"><Link className="choice-card primary" href="/borrow"><PackageCheck aria-hidden="true" /><span><small>ISSUE TOOLS</small><strong>Borrow Tools</strong><p>Identify an approved student, scan available tools, and confirm checkout.</p></span><ArrowRight aria-hidden="true" /></Link><Link className="choice-card" href="/return"><RotateCcw aria-hidden="true" /><span><small>RECONCILE CUSTODY</small><strong>Process Return</strong><p>Identify a student, scan physical returns, and leave unscanned tools outstanding.</p></span><ArrowRight aria-hidden="true" /></Link></section><div className="instruction-card horizontal"><ScanLine aria-hidden="true" /><div><h2>Supported scanning methods</h2><p>Rear camera, laptop webcam, USB keyboard-wedge scanner, typed Student ID or asset code, and QR-image upload. Camera access starts only after pressing the button and stops when you leave the page.</p></div></div></div>; }

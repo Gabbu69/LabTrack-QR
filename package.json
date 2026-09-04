@@ -1,6 +1,7 @@
 {
   "name": "labtrack-qr",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
   "engines": {
     "node": "24.x"
@@ -14,6 +15,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "seed:demo": "node --env-file=.env.local scripts/seed-demo.mjs",
+    "bootstrap:staff": "node --env-file=.env.local scripts/bootstrap-staff.mjs",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
