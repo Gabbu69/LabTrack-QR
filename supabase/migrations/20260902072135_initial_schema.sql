@@ -179,7 +179,7 @@ begin
     nullif(trim(new.raw_user_meta_data ->> 'contact_number'), ''),
     case when new.raw_app_meta_data ->> 'labtrack_data_scope' = 'demo'
       then 'demo'::public.data_scope else 'operational'::public.data_scope end,
-    (new.raw_app_meta_data ->> 'labtrack_staff_role' in ('custodian', 'instructor'))
+    coalesce((new.raw_app_meta_data ->> 'labtrack_staff_role' in ('custodian', 'instructor')), false)
   );
   return new;
 end;
@@ -444,6 +444,29 @@ create or replace function public.set_profile_status(p_profile_id uuid, p_status
 returns public.profiles language sql security invoker set search_path = ''
 as $$ select private.set_profile_status_impl($1, $2); $$;
 
+create or replace function private.reset_demo_records_impl()
+returns void language plpgsql security definer set search_path = ''
+as $$
+declare actor public.profiles;
+begin
+  actor := private.require_custodian();
+  if actor.data_scope <> 'demo' then
+    raise exception 'Demo reset is available only to demo custodians' using errcode = '42501';
+  end if;
+
+  delete from public.transaction_items item
+  using public.transactions tx
+  where item.transaction_id = tx.id and tx.data_scope = 'demo';
+  delete from public.transactions where data_scope = 'demo';
+  delete from public.tools where data_scope = 'demo';
+  delete from private.asset_code_counters where data_scope = 'demo';
+end;
+$$;
+
+create or replace function public.reset_demo_records()
+returns void language sql security invoker set search_path = ''
+as $$ select private.reset_demo_records_impl(); $$;
+
 create or replace function private.create_tool_batch_impl(
   p_tool_name text, p_description text, p_category text, p_quantity integer,
   p_code_prefix text, p_condition public.tool_condition
@@ -543,7 +566,7 @@ begin
   select * into borrower from public.profiles where qr_token = p_borrower_token for share;
   if borrower.id is null or borrower.role <> 'student' then raise exception 'Borrower QR is unknown'; end if;
   if borrower.data_scope <> actor.data_scope then raise exception 'Borrower is outside your data scope' using errcode = '42501'; end if;
-  if jsonb_typeof(p_returned_items) <> 'array' or jsonb_array_length(p_returned_items) = 0 then raise exception 'Scan at least one returned tool'; end if;
+  if p_returned_items is null or jsonb_typeof(p_returned_items) <> 'array' or jsonb_array_length(p_returned_items) = 0 then raise exception 'Scan at least one returned tool'; end if;
 
   with incoming as (
     select (x ->> 'tool_token')::uuid tool_token from jsonb_array_elements(p_returned_items) x
@@ -670,13 +693,15 @@ revoke all on all functions in schema private from public, anon;
 grant execute on function private.current_profile(), private.is_active_staff_for_scope(public.data_scope),
   private.is_active_custodian_for_scope(public.data_scope), private.is_current_profile_active() to authenticated;
 grant execute on function private.update_my_profile_impl(text,text,text,text,text,text), private.complete_password_change_impl(),
-  private.set_profile_status_impl(uuid,public.profile_status), private.create_tool_batch_impl(text,text,text,integer,text,public.tool_condition),
+  private.set_profile_status_impl(uuid,public.profile_status), private.reset_demo_records_impl(),
+  private.create_tool_batch_impl(text,text,text,integer,text,public.tool_condition),
   private.borrow_tools_impl(uuid,uuid[]), private.return_tools_impl(uuid,jsonb), private.mark_items_missing_impl(uuid[],text),
   private.update_tool_impl(uuid,text,text,text,public.tool_condition,public.tool_status), private.delete_unused_tool_impl(uuid) to authenticated;
 
 revoke all on all functions in schema public from public, anon;
 grant execute on function public.update_my_profile(text,text,text,text,text,text), public.complete_password_change(),
-  public.set_profile_status(uuid,public.profile_status), public.create_tool_batch(text,text,text,integer,text,public.tool_condition),
+  public.set_profile_status(uuid,public.profile_status), public.reset_demo_records(),
+  public.create_tool_batch(text,text,text,integer,text,public.tool_condition),
   public.borrow_tools(uuid,uuid[]), public.return_tools(uuid,jsonb), public.mark_items_missing(uuid[],text),
   public.update_tool(uuid,text,text,text,public.tool_condition,public.tool_status), public.delete_unused_tool(uuid) to authenticated;
 

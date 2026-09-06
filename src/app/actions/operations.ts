@@ -57,8 +57,11 @@ export async function createStaffAction(formData: FormData) {
   const parsed = z.object({ fullName: z.string().trim().min(2).max(120), email: z.email().trim().toLowerCase(), role: z.enum(["custodian", "instructor"]), temporaryPassword: z.string().min(10) }).safeParse({ fullName: value(formData, "full_name"), email: value(formData, "email"), role: value(formData, "role"), temporaryPassword: value(formData, "temporary_password") });
   if (!parsed.success) go("/users", "error", parsed.error.issues[0]?.message ?? "Check the staff account details.");
   const admin = createAdminClient();
-  const { error } = await admin.auth.admin.createUser({ email: parsed.data.email, password: parsed.data.temporaryPassword, email_confirm: true, user_metadata: { full_name: parsed.data.fullName }, app_metadata: { labtrack_staff_role: parsed.data.role, labtrack_data_scope: actor.data_scope } });
+  const { data, error } = await admin.auth.admin.createUser({ email: parsed.data.email, password: parsed.data.temporaryPassword, email_confirm: true, user_metadata: { full_name: parsed.data.fullName }, app_metadata: { labtrack_staff_role: parsed.data.role, labtrack_data_scope: actor.data_scope } });
   if (error) go("/users", "error", error.message);
+  if (!data.user) go("/users", "error", "Staff account could not be created.");
+  const { error: profileError } = await admin.from("profiles").update({ full_name: parsed.data.fullName, role: parsed.data.role, data_scope: actor.data_scope, status: "active", student_id: null, must_change_password: true }).eq("id", data.user.id);
+  if (profileError) go("/users", "error", "Account was created but staff access could not be assigned. Contact the deployment owner before retrying.");
   revalidatePath("/users");
   go("/users", "message", "Staff account created. Give the temporary password directly to the staff member.");
 }
@@ -73,7 +76,9 @@ export async function resetPasswordAction(formData: FormData) {
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.updateUserById(parsed.data.profileId, { password: parsed.data.temporaryPassword });
   if (error) go("/users", "error", error.message);
-  await admin.from("profiles").update({ must_change_password: true }).eq("id", parsed.data.profileId);
+  const { error: profileError } = await admin.from("profiles").update({ must_change_password: true }).eq("id", parsed.data.profileId);
+  if (profileError) go("/users", "error", "The password changed, but the required-password-change flag could not be saved.");
+  revalidatePath("/users");
   go("/users", "message", "Temporary password set. The user must change it after sign-in.");
 }
 

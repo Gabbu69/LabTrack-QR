@@ -23,9 +23,7 @@ values ('30000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-00000000
 insert into public.transaction_items (transaction_id, tool_id, tool_name_snapshot, asset_code_snapshot, item_status, issue_condition)
 values ('30000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','Test Meter','TST-001','borrowed','good');
 
-set local role anon;
-select is((select count(*) from public.tools), 0::bigint, 'anonymous users cannot read tool records');
-set local role postgres;
+select ok(not has_table_privilege('anon', 'public.tools', 'select'), 'anonymous users cannot read tool records');
 
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
 set local role authenticated;

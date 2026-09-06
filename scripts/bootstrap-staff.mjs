@@ -14,5 +14,9 @@ for (const account of staff) {
   if (account.password.length < 10) throw new Error(`${account.role} bootstrap password must be at least 10 characters.`);
   const { data, error } = await admin.auth.admin.createUser({ email: account.email, password: account.password, email_confirm: true, user_metadata: { full_name: account.fullName }, app_metadata: { labtrack_staff_role: account.role, labtrack_data_scope: "operational" } });
   if (error) { process.stderr.write(`${account.role}: ${error.message}\n`); process.exitCode = 1; }
-  else process.stdout.write(`${account.role} created: ${data.user.email}\n`);
+  else {
+    const { error: profileError } = await admin.from("profiles").update({ full_name: account.fullName, role: account.role, status: "active", student_id: null, data_scope: "operational", must_change_password: true }).eq("id", data.user.id);
+    if (profileError) throw profileError;
+    process.stdout.write(`${account.role} created: ${data.user.email}\n`);
+  }
 }

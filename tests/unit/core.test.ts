@@ -37,4 +37,11 @@ describe("scan and status transitions", () => {
 
 describe("CSV", () => { it("escapes commas, quotes, and line breaks", () => { expect(toCsv(["Name","Note"], [["Dela Cruz, Juan", "He said \"ok\"\nnext"]])).toBe("Name,Note\r\n\"Dela Cruz, Juan\",\"He said \"\"ok\"\"\nnext\""); }); });
 
+describe("spreadsheet export safety", () => {
+  it("exports user-supplied formulas as literal text", () => {
+    expect(toCsv(["Note"], [["=1+1"], [" +SUM(A1:A2)"], ["@SUM(A1)"], ["-1+2"]]))
+      .toBe("Note\r\n'=1+1\r\n' +SUM(A1:A2)\r\n'@SUM(A1)\r\n'-1+2");
+  });
+});
+
 describe("dashboard metrics", () => { it("derives counts and excludes archived tools", () => { const metrics = calculateDashboardMetrics([{ status: "available" },{ status: "borrowed" },{ status: "missing" },{ status: "unavailable" },{ status: "archived" }], [{ status: "borrowed" },{ status: "partial" },{ status: "returned" }]); expect(metrics).toEqual({ total: 4, available: 1, borrowed: 1, missing: 1, activeTransactions: 2 }); }); });

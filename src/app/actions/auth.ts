@@ -74,7 +74,8 @@ export async function updateProfileAction(formData: FormData) {
   const { error } = await supabase.rpc("update_my_profile", {
     p_full_name: value(formData, "full_name"), p_student_id: value(formData, "student_id"),
     p_year_section: value(formData, "year_section"), p_group_number: value(formData, "group_number"),
-    p_contact_number: value(formData, "contact_number"), p_photo_path: photoPath,
+    p_contact_number: value(formData, "contact_number"),
+    ...(photoPath ? { p_photo_path: photoPath } : {}),
   });
   if (error) go("/profile", "error", error.message);
   revalidatePath("/profile");
