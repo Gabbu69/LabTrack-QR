@@ -10,32 +10,40 @@ This setup is performed once by the developer or deployment owner. Afterward, da
 
 Do not reuse, pause, or delete an unrelated Supabase project merely to make room. Confirm the project screen still shows **$0/month** before creating the dedicated project.
 
-## 2. Create Supabase
+## 2. Connect Supabase
 
-1. Create a dedicated project named `labtrack-qr` in the Singapore region.
-2. In Authentication settings, enable email/password and enable automatic email confirmation for this pilot.
-3. Copy `.env.example` to `.env.local` and replace every placeholder. The publishable key may be public; `SUPABASE_SECRET_KEY` must remain server-only.
-4. Link and apply the checked-in schema:
+The existing **LabTrack QR** project is `pcbfmmtescndhrlarrsm` (Singapore). Its schema is applied. Restore this project from the Supabase dashboard if it is paused; wait for **Active / Healthy** before running SQL or signing in.
+
+1. Copy `.env.example` to `.env.local`. The public URL and publishable key already identify the dedicated project.
+2. Set `SUPABASE_SECRET_KEY` to this project's server-only secret from **Project Settings → API Keys**. Never commit `.env.local` or put the secret in a `NEXT_PUBLIC_` variable.
+3. Install dependencies using `npm ci` (Node.js 24.x).
+4. Link this project before applying future migrations:
 
    ```powershell
    npx supabase@2.116.0 login
-   npx supabase@2.116.0 link --project-ref YOUR_PROJECT_REF
-   npx supabase@2.116.0 db push
+   npx supabase@2.116.0 link --project-ref pcbfmmtescndhrlarrsm
+   npm run db:push
    ```
 
 5. Run database checks and generate current types:
 
    ```powershell
-   npx supabase@2.116.0 db lint --linked
-   npx supabase@2.116.0 test db --linked
-   npx supabase@2.116.0 gen types typescript --linked --schema public | Set-Content src/types/database.generated.ts
+   npm run db:lint
+   npm run db:test
+   npm run db:types
    ```
 
 The migration creates explicit table grants, RLS policies, atomic borrow/return functions, scope constraints, and the private `profile-photos` bucket.
 
+`npm run db:check` checks Auth, server-key access, table permissions, and private photo storage without changing records. `npm run db:test` runs rollback-only SQL tests. The generated types belong in `src/types/database.ts`, which is the file used by the app.
+
+For a different Supabase project, change `SUPABASE_PROJECT_REF`, the URL, and both keys together. The Vercel configuration helper checks that the URL matches the selected project reference.
+
 ## 3. Bootstrap accounts and demo data
 
-Use private, unique one-time passwords in `.env.local`, then run:
+Seven fictional demo accounts and twenty tools have already been created in the dedicated project. Their password is provided privately, never stored in Git. Set `DEMO_ACCOUNT_PASSWORD` in `.env.local` to that password if using the demo reset feature.
+
+To create operational staff accounts, use private, unique one-time passwords in `.env.local`, then run:
 
 ```powershell
 npm run bootstrap:staff
@@ -46,13 +54,22 @@ The first command creates one operational custodian and instructor. The second c
 
 After bootstrap succeeds, remove the `BOOTSTRAP_*` values from local and hosted environments. Keep `DEMO_ACCOUNT_PASSWORD` only if the defense reset button is required.
 
+**Email confirmation:** public student registration uses Supabase Auth. With email confirmation enabled, students must confirm their email before signing in; custodian approval is also required. For an isolated classroom pilot, the project owner may choose automatic confirmation in Supabase Auth settings. Demo accounts are already confirmed.
+
 ## 4. Verify locally
 
 ```powershell
-npm install
+npm ci
+npm run db:check
 npm run verify
+npm run test:smoke
+npx playwright install chromium
 npm run test:e2e
 ```
+
+`npm run test:smoke` starts the production build, signs in the three demo roles, checks authorization, and borrows/returns `DMM-002` using `DEMO-2026-01`. It uses `E2E_DEMO_PASSWORD` or `DEMO_ACCOUNT_PASSWORD`, leaves a completed demo transaction in history, and never resets operational data. Ensure that `DMM-002` is available. Browser tests require Playwright Chromium; authenticated browser tests additionally require the documented `E2E_*` environment variables.
+
+For normal use, run `npm run dev` and open `http://localhost:3000`, or run `npm run build` then `npm start`. A GitHub push alone does not host the app or configure Vercel environment variables.
 
 Run the camera checks over HTTPS or `localhost`; ordinary HTTP on another device will not receive camera permission.
 

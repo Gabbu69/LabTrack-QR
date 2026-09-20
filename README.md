@@ -17,7 +17,7 @@ The application uses Next.js 16, React 19, TypeScript, Tailwind CSS, Supabase Po
 2. Use [DEFENSE_WALKTHROUGH.md](./DEFENSE_WALKTHROUGH.md) for the thesis demonstration.
 3. Read [VERIFICATION.md](./VERIFICATION.md) for what has and has not been directly verified.
 
-Local development uses `npm install` and `npm run dev`. The complete local static verifier is `npm run verify`.
+Local development uses `npm ci` and `npm run dev` after copying `.env.example` to `.env.local`. Use `npm run db:check` for the live connection, `npm run db:test` for SQL/RLS tests, `npm run verify` for static checks and the production build, and `npm run test:smoke` for the running app against demo accounts. See SETUP.md for the required private server key.
 
 ## Security model
 

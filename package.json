@@ -15,8 +15,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:smoke": "node --env-file=.env.local scripts/smoke-app.mjs",
     "seed:demo": "node --env-file=.env.local scripts/seed-demo.mjs",
     "bootstrap:staff": "node --env-file=.env.local scripts/bootstrap-staff.mjs",
+    "db:push": "npx supabase@2.116.0 db push",
+    "db:check": "node --env-file-if-exists=.env.local scripts/check-database.mjs",
+    "db:test": "npx supabase@2.116.0 test db --linked",
+    "db:lint": "npx supabase@2.116.0 db lint --linked",
+    "db:types": "npx supabase@2.116.0 gen types typescript --linked --schema public > src/types/database.ts",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {

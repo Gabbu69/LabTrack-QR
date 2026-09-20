@@ -1,42 +1,35 @@
 # Verification Report
 
-Date: 2026-09-04
+Date: 2026-09-19
 
-## Passed locally
+## Verified in this update
 
-- `npm run lint` — passed with zero warnings
-- `npm run typecheck` — passed
-- `npm test` — 12/12 unit tests passed
-- `npm run build` — Next.js 16.3.4 production build passed; all application and API routes compiled
-- `npm run test:e2e` — 6/6 public Playwright checks passed in both laptop and mobile projects, including protected-route refresh behavior
-- `npm audit --omit=dev` — zero known production dependency vulnerabilities
-- Browser QA on the production build at exact 1366×768 and 390×844 — meaningful content rendered, no development badge, no framework error overlay, no page errors, no control overlap, and no horizontal overflow
-- WCAG automated pass — axe reported zero WCAG 2 A/AA violations on the public login and representative role dashboard; login had zero incomplete checks after the solid-surface contrast adjustment
-- Keyboard focus — visible focus outline confirmed through browser tab navigation
-- Touch sizing — automated DOM measurement found no sub-44px interactive targets on the final representative mobile dashboard and login surfaces
-- Responsive visual gate — 80% structural match against the approved tool-crib composition; the subsequent AISAT Davao cyan/silver theme and distinct aircraft-in-QR-corners LabTrack mark also received an independent `ship` review
+- Dedicated Supabase project: **LabTrack QR** (`pcbfmmtescndhrlarrsm`). All six checked-in migrations are present in its migration history.
+- `npm run verify` passed: ESLint, TypeScript, **13 unit tests**, and the Next.js production build.
+- The three checked-in SQL test files ran against the live database through the Supabase SQL connector inside rolled-back transactions. The nine authorization assertions and four profile-lifecycle assertions passed. The integration script passed its checkout, partial-return, missing-item, late-recovery, scope-isolation, and database demo-reset checks.
+- The profile lifecycle regression confirms that deleting an unused student or instructor Auth account removes its profile. The migration also makes the server role's table grants explicit.
+- `npm run test:smoke` passed against a production server and the live database: anonymous visitors redirect to login; custodian, instructor, and student sign-ins issue session cookies and render their role dashboards; an instructor cannot check out tools; QR/code resolution, checkout, duplicate-checkout rejection, custody lookup, return, and CSV export work. A completed demo transaction is retained as verification history.
+- Seven fictional demo accounts and twenty demo tools are present. The three principal role accounts were tested through the running application's login form endpoint. Passwords and private environment files are excluded from Git.
 
-## Implemented but not verified against a live backend
+## Remaining setup blocker
 
-- Supabase email/password authentication and cookie-based SSR refresh
-- PostgreSQL migration, RLS/grants, storage policies, database tests, concurrency locks, and atomic checkout/return functions
-- Student approval, staff account creation, temporary-password reset/change, and private profile-photo upload
-- Demo bootstrap/reset and operational/demo scope isolation
-- Complete, partial, damaged, missing, and late-found return behavior
-- Protected CSV download using History filters
+`SUPABASE_SECRET_KEY` is not configured in this workspace. The Supabase dashboard still requires sign-in, and the connector used here does not expose that private server key. Consequently:
 
-These require a dedicated Supabase project. Creation was blocked during implementation because the connected free organization already had its maximum two active free projects. No unrelated project was paused, deleted, or reused.
+- `npm run db:check` correctly stops with `Missing: SUPABASE_SECRET_KEY`.
+- Staff-account creation, staff password administration, operational bootstrap, and the full application demo-reset/reseed flow are not verified and require that key.
+- The SQL demo-reset function is verified; that does **not** verify the Auth administration and reseeding performed by the application reset endpoint.
 
-## Attempted but environment-blocked
+To finish, configure the dedicated project's server-only key as `SUPABASE_SECRET_KEY` in `.env.local` and in the hosting environment. Keep `DEMO_ACCOUNT_PASSWORD` configured for demo reset, then run `npm run db:check` and the authenticated release tests. Never commit either secret.
 
-- Local `supabase db lint --local` and `supabase test db --local` — the CLI could not connect because Docker is not installed/running on this machine. These checks can instead run against the dedicated linked project.
+## Advisor result
 
-## Not yet verified
+The current security advisor reports one warning: **Leaked Password Protection Disabled**. No database-policy findings were returned. See [Supabase password-security guidance](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
 
-- `supabase db lint`, generated remote types, and `supabase test db` against the dedicated project
-- Live Auth/RLS behavior, simultaneous two-session checkout, private Storage access, demo reset, and seeded defense accounts
-- Vercel Preview or Production deployment and exact Supabase redirect URLs
-- Full authenticated Playwright flows for all three roles
-- Android Chrome rear camera over production HTTPS, laptop webcam, USB scanner hardware, printed-label scanning, another-phone display, glare/low light, and camera cleanup on physical devices
+## Not verified in this update
 
-An HTTP 200 or a successful local build must not be presented as evidence for these unverified items. Follow [SETUP.md](./SETUP.md) once a free Supabase project slot is available, then replace this section with exact live results.
+- Full authenticated browser workflows, staff temporary-password changes, public student registration/approval, private photo uploads, and simultaneous two-session checkout.
+- Supabase CLI `db lint` and `test db`. The SQL test files were executed through the connector instead.
+- Vercel deployment and production redirect URLs. Pushing to GitHub does not establish that hosting variables are configured or that a deployment succeeds.
+- Physical Android/laptop cameras, USB scanners, printed QR labels, glare/low-light scanning, and camera cleanup on actual devices.
+
+Earlier public-browser and layout checks were recorded on 2026-09-04; they were not rerun in this database update. A passing build or HTTP smoke test is not evidence for the unverified items above.
