@@ -1,5 +1,8 @@
 begin;
 
+create extension if not exists pgtap with schema extensions;
+select plan(1);
+
 create function pg_temp.assert_true(condition boolean, message text)
 returns void language plpgsql as $$
 begin
@@ -198,5 +201,6 @@ select public.reset_demo_records();
 set local role postgres;
 select pg_temp.assert_true(not has_table_privilege('anon', 'public.tools', 'select'), 'anonymous role must have no inventory grant');
 select pg_temp.assert_true((select not public and file_size_limit = 2097152 from storage.buckets where id = 'profile-photos'), 'profile-photo bucket must remain private with a 2 MB limit');
-select 'workflow database integration passed' as result;
+select pass('borrow, partial return, missing, recovery, scope isolation, and demo reset workflows');
+select * from finish();
 rollback;
