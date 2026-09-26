@@ -60,6 +60,7 @@ function PageGuide({ pathname }: { pathname: string }) {
   const [dockTop, setDockTop] = useState(false);
   const panel = useRef<HTMLElement>(null);
   const launcher = useRef<HTMLButtonElement>(null);
+  const spotlight = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -80,8 +81,31 @@ function PageGuide({ pathname }: { pathname: string }) {
     if (!selected || !open) return;
     selected.element.classList.add("guide-target");
     selected.element.scrollIntoView({ block: "center", behavior: "instant" });
-    return () => selected.element.classList.remove("guide-target");
-  }, [selected, open]);
+    function positionSpotlight() {
+      if (!spotlight.current || !selected) return;
+      const rect = selected.element.getBoundingClientRect();
+      Object.assign(spotlight.current.style, {
+        left: `${rect.left - 6}px`, top: `${rect.top - 6}px`,
+        width: `${rect.width + 12}px`, height: `${rect.height + 12}px`,
+        visibility: selected.element.isConnected && rect.width > 0 ? "visible" : "hidden",
+      });
+    }
+    const frame = requestAnimationFrame(() => {
+      positionSpotlight();
+      if (mode === "tour") setDockTop(selected.element.getBoundingClientRect().top > window.innerHeight / 2);
+    });
+    window.addEventListener("scroll", positionSpotlight, true);
+    window.addEventListener("resize", positionSpotlight);
+    const observer = new ResizeObserver(positionSpotlight);
+    observer.observe(selected.element);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("scroll", positionSpotlight, true);
+      window.removeEventListener("resize", positionSpotlight);
+      selected.element.classList.remove("guide-target");
+    };
+  }, [selected, open, mode]);
 
   useEffect(() => {
     if (!open) return;
@@ -125,7 +149,8 @@ function PageGuide({ pathname }: { pathname: string }) {
     setIndex(next); setSelected(steps[next]);
   }
 
-  return <div data-guide-ui className={`guide-root${open && dockTop ? " guide-dock-top" : ""}`}>
+  return <div data-guide-ui className={`guide-root${open && dockTop ? " guide-dock-top" : ""}${open && mode === "tour" ? " guide-tour" : ""}`}>
+    {open && mode === "tour" && selected && <div ref={spotlight} className="guide-spotlight" aria-hidden="true" />}
     {!open && welcome && <div className="guide-welcome"><span>Need assistance? Open the user guide.</span><button type="button" onClick={dismiss} aria-label="Dismiss guide invitation" title="Hide this invitation. You can reopen Help & user guide anytime."><X aria-hidden="true" /></button></div>}
     {!open && <button ref={launcher} type="button" className="guide-launcher" onClick={show} aria-label="Help and page guide" title="Open the user guide and control instructions."><CircleHelp aria-hidden="true" /><span>Help & user guide</span></button>}
     {open && <section className="guide-panel" ref={panel} tabIndex={-1} role="region" aria-label="Page guide">

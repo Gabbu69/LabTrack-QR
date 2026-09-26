@@ -18,6 +18,10 @@
 .guide-panel footer button { padding: 8px 12px; font-size: 12px; }
 .guide-panel footer button:last-child { margin-left: auto; }
 .guide-target { outline: 3px solid #0878ad !important; outline-offset: 4px !important; }
+.guide-spotlight { position: fixed; visibility: hidden; pointer-events: none; z-index: -1; border: 3px solid #56d5ff; border-radius: 8px; box-shadow: 0 0 0 9999px rgb(5 15 24 / 72%), 0 0 18px 3px rgb(86 213 255 / 65%); }
+.guide-tour .guide-panel { display: flex; flex-direction: column; max-height: 42dvh; }
+.guide-tour .guide-content { overflow-y: auto; min-height: 0; }
+.guide-tour .guide-panel header, .guide-tour .guide-panel footer { flex-shrink: 0; }
 .guide-mission-steps { padding-left: 22px; margin: 0 0 20px; }
 .guide-mission-steps li { padding: 0 0 7px 3px; }
 .guide-progress { width: 100%; height: 8px; accent-color: #0878ad; margin-bottom: 16px; }

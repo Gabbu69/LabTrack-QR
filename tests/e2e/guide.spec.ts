@@ -18,10 +18,29 @@ test("page tour supports next, back, skip and persistent dismissal", async ({ pa
   await page.getByRole("button", { name: "Help and page guide" }).click();
   await page.getByRole("button", { name: "Start page tour" }).click();
   await expect(page.getByText(/Step 1 of/)).toBeVisible();
+  const spotlight = page.locator(".guide-spotlight");
+  const target = page.locator(".guide-target");
+  const firstTarget = await target.evaluate((element) => element.outerHTML);
+  async function expectSpotlight() {
+    await expect(spotlight).toBeVisible();
+    await expect(target).toHaveCount(1);
+    await expect.poll(async () => {
+      const light = await spotlight.boundingBox();
+      const control = await target.boundingBox();
+      return Boolean(light && control && Math.abs(light.x - (control.x - 6)) < 1 && Math.abs(light.y - (control.y - 6)) < 1 && Math.abs(light.width - (control.width + 12)) < 1);
+    }).toBe(true);
+    await expect(spotlight).toHaveCSS("pointer-events", "none");
+    expect(await spotlight.evaluate((element) => getComputedStyle(element).boxShadow)).toContain("9999px");
+  }
+  await expectSpotlight();
   await page.getByRole("button", { name: "Next step" }).click();
   await expect(page.getByText(/Step 2 of/)).toBeVisible();
+  await expectSpotlight();
+  expect(await target.evaluate((element) => element.outerHTML)).not.toBe(firstTarget);
   await page.getByRole("button", { name: "Previous step" }).click();
   await expect(page.getByText(/Step 1 of/)).toBeVisible();
+  await expectSpotlight();
+  expect(await target.evaluate((element) => element.outerHTML)).toBe(firstTarget);
   const guide = page.getByRole("region", { name: "Page guide" });
   const box = await guide.boundingBox();
   const viewport = page.viewportSize()!;
@@ -30,6 +49,8 @@ test("page tour supports next, back, skip and persistent dismissal", async ({ pa
   expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
   expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
   await page.getByRole("button", { name: "Close guide", exact: true }).last().click();
+  await expect(spotlight).toHaveCount(0);
+  await expect(target).toHaveCount(0);
   await page.reload();
   await expect(page.getByText("Need assistance? Open the user guide.")).not.toBeVisible();
   await expect(page.getByRole("button", { name: "Help and page guide" })).toBeVisible();
