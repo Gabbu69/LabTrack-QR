@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Check, Flag, Gamepad2 } from "lucide-react";
+import { Check, Flag, BookOpen } from "lucide-react";
 import { missions, type GuideRole } from "@/lib/guide-missions";
 
 export function MissionGuide() {
@@ -26,16 +26,16 @@ export function MissionGuide() {
   }
   const count = missions[role].filter((_, index) => completed.includes(`${role}-${index}`)).length;
   return <main className="mission-page">
-    <header className="mission-header"><div className="mission-kicker"><Gamepad2 aria-hidden="true" />LABTRACK FIELD GUIDE</div><h1>HOW TO PLAY</h1><p>One mission at a time. Learn the buttons, then try the real steps.</p><Link href="/login" className="button button-secondary">Back to sign in</Link></header>
+    <header className="mission-header"><div className="mission-kicker"><BookOpen aria-hidden="true" />LABTRACK HELP CENTER</div><h1>USER GUIDE</h1><p>Instructions for account access, tool checkout, returns, and reporting.</p><Link href="/login" className="button button-secondary">Back to sign in</Link></header>
     <fieldset className="mission-roles"><legend>1. Choose your role</legend>{(["student", "custodian", "instructor"] as const).map((item) => <label key={item} className={role === item ? "chosen" : ""}><input type="radio" name="guide-role" value={item} checked={role === item} onChange={() => setRole(item)} />{item === "student" ? "Student" : item === "custodian" ? "Tool custodian" : "Instructor"}</label>)}</fieldset>
-    <section className="mission-progress" aria-label="Learning progress"><div><strong>2. Complete your training missions</strong><span>{count} / {missions[role].length} learned</span></div><progress value={count} max={missions[role].length} /><p>Checkmarks save on this device. They track your learning only; they do not create accounts or move tools.</p></section>
+    <section className="mission-progress" aria-label="Guide progress"><div><strong>2. Review the workflow instructions</strong><span>{count} / {missions[role].length} reviewed</span></div><progress value={count} max={missions[role].length} /><p>Reviewed sections are saved on this device. Marking a section does not change laboratory records.</p></section>
     <div className="mission-list">{missions[role].map((mission, index) => {
       const key = `${role}-${index}`; const done = completed.includes(key);
       return <article className={`mission-card${done ? " learned" : ""}`} key={key}>
         <div className="mission-number" aria-hidden="true">{done ? <Check /> : String(index + 1).padStart(2, "0")}</div>
-        <div className="mission-body"><p className="mission-kicker">MISSION {index + 1}</p><h2>{mission.title}</h2><ol>{mission.steps.map((step) => <li key={step}>{step}</li>)}</ol><p className="mission-success"><Flag aria-hidden="true" /><span><strong>You did it when: </strong>{mission.success}</span></p><div className="mission-actions"><Link className="button button-secondary" href={mission.href}>Open this page</Link><button className="button button-primary" type="button" aria-pressed={done} disabled={!loaded} onClick={() => toggle(key)}>{done ? "Learned ✓ — undo" : "I learned this"}</button></div></div>
+        <div className="mission-body"><p className="mission-kicker">WORKFLOW {index + 1}</p><h2>{mission.title}</h2><ol>{mission.steps.map((step) => <li key={step}>{step}</li>)}</ol><p className="mission-success"><Flag aria-hidden="true" /><span><strong>Expected result: </strong>{mission.success}</span></p><div className="mission-actions"><Link className="button button-secondary" href={mission.href}>Open this page</Link><button className="button button-primary" type="button" aria-pressed={done} disabled={!loaded} onClick={() => toggle(key)}>{done ? "Reviewed ✓ — undo" : "Mark as reviewed"}</button></div></div>
       </article>;
     })}</div>
-    <aside className="mission-tip"><h2>Stuck on a button?</h2><p>Press <strong>How to play → Explain a control</strong>, then tap it. The highlighted control stays safe while you read. Close the guide to actually use it.</p><p>A gray button means you need to finish an earlier step or wait for a request. If a red message appears, read it before trying again.</p></aside>
+    <aside className="mission-tip"><h2>Need help with a control?</h2><p>Press <strong>Help & user guide → Explain a control</strong>, then tap it. The highlighted control stays safe while you read. Close the guide to actually use it.</p><p>A gray button means you need to finish an earlier step or wait for a request. If a red message appears, read it before trying again.</p></aside>
   </main>;
 }

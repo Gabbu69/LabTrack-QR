@@ -7,8 +7,9 @@ test.use({trace:'off'}); // Authenticated traces can contain credentials and coo
 test.beforeEach(async ({page,baseURL})=>{
  const secret=process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
  if(secret && baseURL && new URL(baseURL).hostname.endsWith('.vercel.app')) {
-  const origin=new URL(baseURL).origin;
-  await page.route(url=>url.origin===origin,route=>route.continue({headers:{...route.request().headers(),'x-vercel-protection-bypass':secret}}));
+  // Vercel's supported cookie covers native downloads as well as page requests.
+  // APIRequestContext shares the browser context's cookie jar; no token in URLs.
+  await page.request.get(baseURL,{headers:{'x-vercel-protection-bypass':secret,'x-vercel-set-bypass-cookie':'true'}});
  }
 });
 async function fit(page: Page, label: string) {
@@ -22,7 +23,7 @@ async function login(page: Page,email:string) {
 }
 test('public pages fit 320, 390, 768 and 1366 pixels', async ({page})=>{
  test.setTimeout(180000);
- for(const path of ['/login','/register','/guide']) for(const width of widths){await page.setViewportSize({width,height:900});await page.goto(path);await expect(page.locator('h1').first()).toBeVisible();await fit(page,`${path} ${width}`);}
+ for(const path of ['/login','/register','/guide']){await page.goto(path);await expect(page.locator('h1').first()).toBeVisible();for(const width of widths){await page.setViewportSize({width,height:900});await fit(page,`${path} ${width}`);}}
 });
 for(const [role,email,paths] of [
  ['custodian','custodian.demo@labtrackqr2026.com',['/dashboard','/tools','/tools/labels','/history','/borrow','/return','/scan','/users','/profile']],

@@ -8,7 +8,7 @@ Open [LabTrack QR](https://labtrack-qr.vercel.app/login). Use the password provi
 | Instructor | instructor.demo@labtrackqr2026.com | Read-only inventory, borrowers, history and reports |
 | Student | jordan.demo@labtrackqr2026.com | Personal QR, borrowed tools, own history and profile |
 
-1. Start with the **custodian** account. Check Dashboard, Tool Inventory and History. Open **How to play** or [the training guide](https://labtrack-qr.vercel.app/guide) for each control's explanation.
+1. Start with the **custodian** account. Check Dashboard, Tool Inventory and History. Open **Help & user guide** or [the training guide](https://labtrack-qr.vercel.app/guide) for each control's explanation.
 2. In Borrow, type student ID **DEMO-2026-01** and choose **Use code**. Scan or type an available asset code such as **DMM-002**. Review the borrower and selected tool carefully. **Confirm checkout** creates a real demo transaction.
 3. In Return, identify the same student and scan their borrowed asset. Select its return condition, review the summary and confirm. For a partial return, select only tools physically received. Mark an item missing only after checking; the recovery workflow handles later returns.
 4. Open History, apply filters and choose **Export CSV**. Page numbers show 50 records at a time; export includes all matching records.

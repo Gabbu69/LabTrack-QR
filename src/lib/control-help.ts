@@ -43,7 +43,7 @@ const destinations: Record<string, string> = {
   "/login": "Sign in with your assigned account. Students who do not have an account can register.",
   "/register": "Create your student account, confirm your email, then wait for custodian approval.",
   "/change-password": "Replace your temporary password with one only you know before continuing.",
-  "/guide": "Pick your role, follow one mission at a time, and tick off the instructions you have learned.",
+  "/guide": "Choose your role, follow the workflow instructions, and mark the sections you have reviewed.",
 };
 
 export function describeControl(label: string, href?: string | null) {

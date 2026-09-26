@@ -3,7 +3,7 @@ export type Mission = { title: string; href: string; steps: string[]; success: s
 
 const helpMission: Mission = {
   title: "Learn the controls", href: "/login",
-  steps: ["Press How to play at the bottom of any page.", "Choose Start page tour for a step-by-step walkthrough, or Explain a control and tap any button or field.", "Read what it does and how to use it. Close the guide when you are ready to perform the action."],
+  steps: ["Press Help & user guide at the bottom of any page.", "Choose Start page tour for a step-by-step walkthrough, or Explain a control and tap any button or field.", "Read what it does and how to use it. Close the guide when you are ready to perform the action."],
   success: "You can ask for help on any page. The guide never checks out a tool or submits a form for you.",
 };
 

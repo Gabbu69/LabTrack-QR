@@ -31,31 +31,31 @@ test("page tour supports next, back, skip and persistent dismissal", async ({ pa
   expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
   await page.getByRole("button", { name: "Close guide", exact: true }).last().click();
   await page.reload();
-  await expect(page.getByText("New here? Learn one move at a time.")).not.toBeVisible();
+  await expect(page.getByText("Need assistance? Open the user guide.")).not.toBeVisible();
   await expect(page.getByRole("button", { name: "Help and page guide" })).toBeVisible();
 });
 
-test("training missions save learning progress separately for each role", async ({ page }) => {
+test("workflow instructions save review progress separately for each role", async ({ page }) => {
   await page.goto("/login");
   await page.getByRole("button", { name: "Help and page guide" }).click();
-  await page.getByRole("link", { name: "All training missions" }).click();
+  await page.getByRole("link", { name: "Complete user guide" }).click();
   await expect(page).toHaveURL(/\/guide$/);
-  await expect(page.getByRole("heading", { name: "HOW TO PLAY", exact: true })).toBeVisible();
-  const progress = page.getByRole("region", { name: "Learning progress" });
-  await expect(progress).toContainText("0 / 5 learned");
-  await page.getByRole("button", { name: "I learned this", exact: true }).first().click();
-  await expect(progress).toContainText("1 / 5 learned");
+  await expect(page.getByRole("heading", { name: "USER GUIDE", exact: true })).toBeVisible();
+  const progress = page.getByRole("region", { name: "Guide progress" });
+  await expect(progress).toContainText("0 / 5 reviewed");
+  await page.getByRole("button", { name: "Mark as reviewed", exact: true }).first().click();
+  await expect(progress).toContainText("1 / 5 reviewed");
   await page.reload();
-  await expect(progress).toContainText("1 / 5 learned");
+  await expect(progress).toContainText("1 / 5 reviewed");
   await page.getByRole("radio", { name: "Tool custodian", exact: true }).check();
-  await expect(progress).toContainText("0 / 8 learned");
+  await expect(progress).toContainText("0 / 8 reviewed");
   await expect(page.getByRole("heading", { name: "Complete a checkout" })).toBeVisible();
   await page.getByRole("radio", { name: "Instructor", exact: true }).check();
-  await expect(progress).toContainText("0 / 3 learned");
+  await expect(progress).toContainText("0 / 3 reviewed");
   await page.getByRole("radio", { name: "Student", exact: true }).check();
-  await expect(progress).toContainText("1 / 5 learned");
-  await page.getByRole("button", { name: /Learned.*undo/ }).click();
-  await expect(progress).toContainText("0 / 5 learned");
+  await expect(progress).toContainText("1 / 5 reviewed");
+  await page.getByRole("button", { name: /Reviewed.*undo/ }).click();
+  await expect(progress).toContainText("0 / 5 reviewed");
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
 });
 
