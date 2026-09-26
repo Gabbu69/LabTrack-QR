@@ -59,7 +59,7 @@ test("page tour supports next, back, skip and persistent dismissal", async ({ pa
 test("workflow instructions save review progress separately for each role", async ({ page }) => {
   await page.goto("/login");
   await page.getByRole("button", { name: "Help and page guide" }).click();
-  await page.getByRole("link", { name: "Complete user guide" }).click();
+  await page.getByRole("link", { name: "Complete user guide", exact: true }).click();
   await expect(page).toHaveURL(/\/guide$/);
   await expect(page.getByRole("heading", { name: "USER GUIDE", exact: true })).toBeVisible();
   const progress = page.getByRole("region", { name: "Guide progress" });

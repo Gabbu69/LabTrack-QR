@@ -1,6 +1,6 @@
 # LabTrack QR client guide
 
-Open [LabTrack QR](https://labtrack-qr.vercel.app/login). Use the password provided privately by the deployment owner. These addresses are LabTrack sign-in accounts, not Gmail inboxes.
+Open [the Complete User Guide](https://labtrack-qr.vercel.app/guide), choose a role, and select **Use demo account**. The sign-in page fills the demo email and password; press **Sign in** to continue. These addresses are LabTrack sign-in accounts, not Gmail inboxes. **Use my own account** returns to the regular personal sign-in form, where your browser may offer saved credentials.
 
 | Role | Demo login | What to try |
 | --- | --- | --- |

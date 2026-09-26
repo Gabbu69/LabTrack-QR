@@ -9,7 +9,7 @@ const helpMission: Mission = {
 
 export const missions: Record<GuideRole, Mission[]> = {
   student: [helpMission, {
-    title: "Create your player account", href: "/register",
+    title: "Create your student account", href: "/register",
     steps: ["Press Register an account on the sign-in page.", "Enter your full name, student ID, year/section, group, phone number and email. Choose a password with at least 8 characters.", "Press Submit registration once. Check your inbox for the confirmation link, then ask the custodian to approve your account."],
     success: "Your email is confirmed and your account is Active. A Pending account is waiting for approval.",
   }, {

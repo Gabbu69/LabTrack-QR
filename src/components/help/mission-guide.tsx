@@ -29,6 +29,12 @@ export function MissionGuide() {
     <header className="mission-header"><div className="mission-kicker"><BookOpen aria-hidden="true" />LABTRACK HELP CENTER</div><h1>USER GUIDE</h1><p>Instructions for account access, tool checkout, returns, and reporting.</p><Link href="/login" className="button button-secondary">Back to sign in</Link></header>
     <fieldset className="mission-roles"><legend>1. Choose your role</legend>{(["student", "custodian", "instructor"] as const).map((item) => <label key={item} className={role === item ? "chosen" : ""}><input type="radio" name="guide-role" value={item} checked={role === item} onChange={() => setRole(item)} />{item === "student" ? "Student" : item === "custodian" ? "Tool custodian" : "Instructor"}</label>)}</fieldset>
     <section className="mission-progress" aria-label="Guide progress"><div><strong>2. Review the workflow instructions</strong><span>{count} / {missions[role].length} reviewed</span></div><progress value={count} max={missions[role].length} /><p>Reviewed sections are saved on this device. Marking a section does not change laboratory records.</p></section>
+    <section className="mission-tip" aria-label="Try a demo account">
+      <h2>Try with a demo account</h2>
+      <p>Explore as a <strong>{role === "custodian" ? "tool custodian" : role}</strong> using shared sample records. Changes are visible to other demo users. Do not enter personal information.</p>
+      <p>We will fill in the demo email and password on the sign-in page. You choose when to press Sign in. These are LabTrack login addresses, not Gmail inboxes.</p>
+      <Link className="button button-primary" href={`/login?demo=${role}`} prefetch={false}>Use demo account</Link>
+    </section>
     <div className="mission-list">{missions[role].map((mission, index) => {
       const key = `${role}-${index}`; const done = completed.includes(key);
       return <article className={`mission-card${done ? " learned" : ""}`} key={key}>
