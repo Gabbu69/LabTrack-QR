@@ -42,7 +42,7 @@ Status labels: **Fixed** means implemented with the evidence stated below; **Rec
 
 ## Bugs Fixed
 
-C1–C2 and H1–H4 close verified access, concurrency, scanner and completeness defects. M1–M5 address misleading failures, literal search, dates, responsive layout and deletion behavior. Additional changes add a busy-state cleanup path for demo reset, confirmation/pending feedback for unused-tool deletion, no-store JSON failures and cross-origin mutation rejection. The existing visual design and guided missions are preserved.
+C1–C2 and H1–H4 close verified access, concurrency, scanner and completeness defects. M1–M5 address misleading failures, literal search, dates, responsive layout and deletion behavior. Additional changes add a busy-state cleanup path for demo reset, confirmation/pending feedback for unused-tool deletion, no-store JSON failures and cross-origin mutation rejection. The existing visual design and guided instructions are preserved. Per the owner's correction, the launcher reads Help & user guide, the guide heading reads USER GUIDE, the gamepad icon is replaced by a book, and sections use workflow/review wording.
 
 ## Security Improvements
 
@@ -54,7 +54,7 @@ Inventory/history queries filter before pagination with exact counts and stable 
 
 ## UI/UX Improvements
 
-Numbered 50-record pages, explicit retry/sign-in feedback, accessible scanner labels/status messages, pending submit controls, safe decoder lifecycle and responsive authentication layout improve the existing workflows. The public guide and per-role training progress remain available. Browser checks cover refresh, logout, typed scanning and export without mutating shared inventory. Physical accessibility and assistive-technology certification are not claimed.
+Numbered 50-record pages, explicit retry/sign-in feedback, accessible scanner labels/status messages, pending submit controls, safe decoder lifecycle and responsive authentication layout improve the existing workflows. The public user guide and per-role review progress remain available. Browser checks cover refresh, logout, typed scanning and export without mutating shared inventory. Physical accessibility and assistive-technology certification are not claimed.
 
 ## Code Quality Improvements
 

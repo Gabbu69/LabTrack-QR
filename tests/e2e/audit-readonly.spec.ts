@@ -23,7 +23,7 @@ async function login(page: Page,email:string) {
 }
 test('public pages fit 320, 390, 768 and 1366 pixels', async ({page})=>{
  test.setTimeout(180000);
- for(const path of ['/login','/register','/guide']){await page.goto(path);await expect(page.locator('h1').first()).toBeVisible();for(const width of widths){await page.setViewportSize({width,height:900});await fit(page,`${path} ${width}`);}}
+ for(const path of ['/login','/register','/guide']){await page.goto(path);await expect(page.locator('h1').first()).toBeVisible();await expect(page.getByRole('button',{name:'Help and page guide'})).toHaveText('Help & user guide');if(path==='/guide')await expect(page.getByRole('heading',{name:'USER GUIDE',exact:true})).toBeVisible();for(const width of widths){await page.setViewportSize({width,height:900});await fit(page,`${path} ${width}`);}}
 });
 for(const [role,email,paths] of [
  ['custodian','custodian.demo@labtrackqr2026.com',['/dashboard','/tools','/tools/labels','/history','/borrow','/return','/scan','/users','/profile']],
