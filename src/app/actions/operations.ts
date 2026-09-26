@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { performPasswordUpdate } from "@/lib/password-operation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { requireCustodian, requireProfile } from "@/lib/auth";
@@ -18,7 +19,7 @@ export async function createToolBatchAction(formData: FormData) {
   if (!parsed.success) go("/tools", "error", parsed.error.issues[0]?.message ?? "Check the tool details.");
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("create_tool_batch", { p_tool_name: parsed.data.toolName, p_description: parsed.data.description, p_category: parsed.data.category, p_quantity: parsed.data.quantity, p_code_prefix: normalizeAssetPrefix(parsed.data.codePrefix), p_condition: parsed.data.condition });
-  if (error) go("/tools", "error", error.message);
+  if (error) go("/tools", "error", "The change could not be completed. Check the details, reload the record, and try again.");
   revalidatePath("/tools"); revalidatePath("/dashboard");
   const batchId = data?.[0]?.creation_batch_id;
   if (batchId) redirect(`/tools/labels?batch=${batchId}`);
@@ -35,7 +36,7 @@ export async function updateToolAction(formData: FormData) {
   if (!parsed.success) go(`/tools/${value(formData, "tool_id")}`, "error", parsed.error.issues[0]?.message ?? "Check the tool details.");
   const supabase = await createClient();
   const { error } = await supabase.rpc("update_tool", { p_tool_id: parsed.data.toolId, p_tool_name: parsed.data.toolName, p_description: parsed.data.description, p_category: parsed.data.category, p_condition: parsed.data.condition, p_status: parsed.data.status });
-  if (error) go(`/tools/${parsed.data.toolId}`, "error", error.message);
+  if (error) go(`/tools/${parsed.data.toolId}`, "error", "The change could not be completed. Check the details, reload the record, and try again.");
   revalidatePath("/tools"); revalidatePath(`/tools/${parsed.data.toolId}`); revalidatePath("/dashboard");
   go(`/tools/${parsed.data.toolId}`, "message", "Tool record updated.");
 }
@@ -47,18 +48,18 @@ export async function setProfileStatusAction(formData: FormData) {
   if (parsed.data.profileId === actor.id && parsed.data.status !== "active") go("/users", "error", "You cannot deactivate your current account.");
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_profile_status", { p_profile_id: parsed.data.profileId, p_status: parsed.data.status });
-  if (error) go("/users", "error", error.message);
+  if (error) go("/users", "error", "The change could not be completed. Check the details, reload the record, and try again.");
   revalidatePath("/users");
   go("/users", "message", "Account status updated.");
 }
 
 export async function createStaffAction(formData: FormData) {
   const actor = await requireCustodian();
-  const parsed = z.object({ fullName: z.string().trim().min(2).max(120), email: z.email().trim().toLowerCase(), role: z.enum(["custodian", "instructor"]), temporaryPassword: z.string().min(10) }).safeParse({ fullName: value(formData, "full_name"), email: value(formData, "email"), role: value(formData, "role"), temporaryPassword: value(formData, "temporary_password") });
+  const parsed = z.object({ fullName: z.string().trim().min(2).max(120), email: z.string().trim().toLowerCase().pipe(z.email()), role: z.enum(["custodian", "instructor"]), temporaryPassword: z.string().min(10).max(128) }).safeParse({ fullName: value(formData, "full_name"), email: value(formData, "email"), role: value(formData, "role"), temporaryPassword: value(formData, "temporary_password") });
   if (!parsed.success) go("/users", "error", parsed.error.issues[0]?.message ?? "Check the staff account details.");
   const admin = createAdminClient();
   const { data, error } = await admin.auth.admin.createUser({ email: parsed.data.email, password: parsed.data.temporaryPassword, email_confirm: true, user_metadata: { full_name: parsed.data.fullName }, app_metadata: { labtrack_staff_role: parsed.data.role, labtrack_data_scope: actor.data_scope } });
-  if (error) go("/users", "error", error.message);
+  if (error) go("/users", "error", "The change could not be completed. Check the details, reload the record, and try again.");
   if (!data.user) go("/users", "error", "Staff account could not be created.");
   const { error: profileError } = await admin.from("profiles").update({ full_name: parsed.data.fullName, role: parsed.data.role, data_scope: actor.data_scope, status: "active", student_id: null, must_change_password: true }).eq("id", data.user.id);
   if (profileError) go("/users", "error", "Account was created but staff access could not be assigned. Contact the deployment owner before retrying.");
@@ -68,16 +69,14 @@ export async function createStaffAction(formData: FormData) {
 
 export async function resetPasswordAction(formData: FormData) {
   const actor = await requireCustodian();
-  const parsed = z.object({ profileId: z.uuid(), temporaryPassword: z.string().min(10) }).safeParse({ profileId: value(formData, "profile_id"), temporaryPassword: value(formData, "temporary_password") });
+  const parsed = z.object({ profileId: z.uuid(), temporaryPassword: z.string().min(10).max(128) }).safeParse({ profileId: value(formData, "profile_id"), temporaryPassword: value(formData, "temporary_password") });
   if (!parsed.success) go("/users", "error", "Temporary passwords must be at least 10 characters.");
   const supabase = await createClient();
-  const { data: target } = await supabase.from("profiles").select("id,data_scope").eq("id", parsed.data.profileId).maybeSingle();
+  const { data: target } = await supabase.from("profiles").select("id,data_scope,updated_at").eq("id", parsed.data.profileId).maybeSingle();
   if (!target || target.data_scope !== actor.data_scope) go("/users", "error", "Account not found in your scope.");
   const admin = createAdminClient();
-  const { error } = await admin.auth.admin.updateUserById(parsed.data.profileId, { password: parsed.data.temporaryPassword });
-  if (error) go("/users", "error", error.message);
-  const { error: profileError } = await admin.from("profiles").update({ must_change_password: true }).eq("id", parsed.data.profileId);
-  if (profileError) go("/users", "error", "The password changed, but the required-password-change flag could not be saved.");
+  const result = await performPasswordUpdate(target, () => admin.auth.admin.updateUserById(parsed.data.profileId, { password: parsed.data.temporaryPassword }), true);
+  if (!result.ok) go("/users", "error", result.message);
   revalidatePath("/users");
   go("/users", "message", "Temporary password set. The user must change it after sign-in.");
 }
@@ -88,7 +87,7 @@ export async function deleteUnusedToolAction(formData: FormData) {
   if (!toolId.success) go("/tools", "error", "Invalid tool record.");
   const supabase = await createClient();
   const { error } = await supabase.rpc("delete_unused_tool", { p_tool_id: toolId.data });
-  if (error) go("/tools", "error", error.message);
+  if (error) go("/tools", "error", "The change could not be completed. Check the details, reload the record, and try again.");
   revalidatePath("/tools"); revalidatePath("/dashboard");
   go("/tools", "message", "Unused tool record deleted.");
 }

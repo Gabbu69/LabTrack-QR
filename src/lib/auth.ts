@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import type { AppRole, Profile } from "@/types/app";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
+import { accessFailure, type AccessOptions } from "@/lib/access-policy";
 
 export const getProfile = cache(async (): Promise<Profile | null> => {
   if (!isSupabaseConfigured()) return null;
@@ -11,16 +12,18 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
   const { data } = await supabase.auth.getClaims();
   const userId = typeof data?.claims?.sub === "string" ? data.claims.sub : null;
   if (!userId) return null;
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+  const { data: profile, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+  if (error) throw new Error("Account details could not be loaded. Please try again.");
   return profile as Profile | null;
 });
 
-export async function requireProfile(roles?: AppRole[]) {
+export async function requireProfile(roles?: AppRole[], options: AccessOptions = {}) {
   const profile = await getProfile();
-  if (!profile) redirect("/login");
-  if (profile.status === "disabled") redirect("/login?error=This account has been disabled. Contact the tool custodian.");
-  if (roles && !roles.includes(profile.role)) redirect("/dashboard?error=You do not have access to that page.");
-  return profile;
+  const failure = accessFailure(profile, { ...options, roles });
+  if (failure?.status === 401) redirect("/login");
+  if (failure?.code === "PASSWORD_CHANGE_REQUIRED") redirect("/change-password");
+  if (failure) redirect(`${failure.code === "ACCOUNT_DISABLED" ? "/login" : "/dashboard"}?error=${encodeURIComponent(failure.message)}`);
+  return profile!;
 }
 
 export async function requireActiveProfile(roles?: AppRole[]) {

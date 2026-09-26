@@ -5,7 +5,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { requireProfile } from "@/lib/auth";
 
 export default async function ChangePasswordPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  await requireProfile();
+  await requireProfile(undefined, { allowPasswordChange: true });
   const query = await searchParams;
   return <main className="single-form-page"><section className="single-form-card">
     <span className="industrial-icon"><KeyRound aria-hidden="true" /></span><h1>Set a private password</h1><p>Your temporary password worked. Replace it before using LabTrack QR.</p>

@@ -1,0 +1,15 @@
+/.git
+/.next
+/node_modules
+/.env*
+/supabase
+/test-results
+/playwright-report
+/tests
+/.audit-evidence
+/.github
+/scripts
+/.impeccable
+*.tsbuildinfo
+/*.md
+/*.png

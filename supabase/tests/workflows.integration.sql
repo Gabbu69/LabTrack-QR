@@ -30,6 +30,10 @@ where id in (
   '01000000-0000-4000-8000-000000000007'
 );
 
+-- These fixtures represent staff who have already set their private password.
+update public.profiles set must_change_password = false
+where id in ('01000000-0000-4000-8000-000000000001', '01000000-0000-4000-8000-000000000002', '01000000-0000-4000-8000-000000000006');
+
 insert into public.tools (
   id, asset_code, tool_name, description, category, condition, status,
   qr_token, creation_batch_id, data_scope, created_by, archived_at

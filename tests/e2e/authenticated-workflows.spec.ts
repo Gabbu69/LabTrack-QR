@@ -1,6 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { expect, test, type Page } from "@playwright/test";
 
+// Mutation suites are opt-in and fail closed for the shared Gabs backend.
+const isolated = process.env.E2E_ISOLATED_DATABASE === "true" && !!process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("tsusogeqjduyahoskteb");
+test.beforeEach(() => { test.skip(!isolated, "Mutations require disposable fixtures on an isolated backend."); });
 const demoPassword = process.env.E2E_DEMO_PASSWORD;
 const demoCustodianEmail = process.env.E2E_DEMO_CUSTODIAN_EMAIL ?? "custodian.demo@labtrackqr2026.com";
 const demoInstructorEmail = process.env.E2E_DEMO_INSTRUCTOR_EMAIL ?? "instructor.demo@labtrackqr2026.com";

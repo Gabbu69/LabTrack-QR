@@ -1,23 +1,35 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { requireProfile } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { apiRoute } from "@/lib/api";
 import { toCsv } from "@/lib/csv";
 import { createClient } from "@/lib/supabase/server";
-import type { Transaction, TransactionItem } from "@/types/app";
+import { historyQuery, transactionItems } from "@/lib/records";
+import { parseHistoryFilters } from "@/lib/query-filters";
 
-export async function GET(request: NextRequest) {
-  const profile = await requireProfile(); const supabase = await createClient(); const filters = request.nextUrl.searchParams;
-  let query = supabase.from("transactions").select("*").order("borrowed_at", { ascending: false }).limit(5000);
-  if (profile.role === "student") query = query.eq("borrower_id", profile.id);
-  const status = filters.get("status");
-  if (status === "active") query = query.neq("status", "returned"); else if (status && ["borrowed","partial","incomplete","returned"].includes(status)) query = query.eq("status", status as Transaction["status"]);
-  const from = filters.get("from"); const to = filters.get("to");
-  if (from) query = query.gte("borrowed_at", `${from}T00:00:00`); if (to) query = query.lte("borrowed_at", `${to}T23:59:59.999`);
-  const { data, error } = await query; if (error) return NextResponse.json({ error: "Report could not be generated." }, { status: 500 });
-  let transactions = (data ?? []) as Transaction[]; const needle = (filters.get("q") ?? filters.get("student") ?? "").trim().toLowerCase();
-  if (needle) transactions = transactions.filter((transaction) => `${transaction.borrower_name_snapshot} ${transaction.borrower_student_id_snapshot} ${transaction.id}`.toLowerCase().includes(needle));
-  const ids = transactions.map((transaction) => transaction.id); const { data: itemData, error: itemError } = ids.length ? await supabase.from("transaction_items").select("*").in("transaction_id", ids) : { data: [], error: null };
-  if (itemError) return NextResponse.json({ error: "Report items could not be loaded. Try exporting again." }, { status: 503 });
-  const items = (itemData ?? []) as TransactionItem[]; const transactionMap = new Map(transactions.map((transaction) => [transaction.id, transaction]));
-  const csv = toCsv(["Transaction ID","Borrower","Student ID","Year/Section","Group","Date Borrowed","Date Returned","Transaction Status","Asset Code","Tool","Item Status","Issue Condition","Return Condition","Return Note","Missing At","Missing Note"], items.map((item) => { const tx = transactionMap.get(item.transaction_id); return [tx?.id,tx?.borrower_name_snapshot,tx?.borrower_student_id_snapshot,tx?.borrower_year_section_snapshot,tx?.borrower_group_snapshot,tx?.borrowed_at,tx?.completed_at,tx?.status,item.asset_code_snapshot,item.tool_name_snapshot,item.item_status,item.issue_condition,item.return_condition,item.return_note,item.missing_at,item.missing_note]; }));
-  return new NextResponse(`\uFEFF${csv}`, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="labtrack-history-${new Date().toISOString().slice(0, 10)}.csv"`, "Cache-Control": "private, no-store" } });
-}
+export const GET = apiRoute({ active: true }, async (request) => {
+  const filters = Object.fromEntries(request.nextUrl.searchParams);
+  try { parseHistoryFilters(filters); }
+  catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid report filters." }, { status: 400 }); }
+  const client = await createClient();
+  const columns = ["Transaction ID","Borrower","Student ID","Year/Section","Group","Date Borrowed","Date Returned","Transaction Status","Asset Code","Tool","Item Status","Issue Condition","Return Condition","Return Note","Missing At","Missing Note"];
+  const chunks = ["\uFEFF" + toCsv(columns, [])];
+  // Do not return a successful download unless every batch succeeds.
+  const startedAt = new Date().toISOString();
+  let cursor: string | undefined;
+  for (;;) {
+    let query = historyQuery(client, filters, true).lte("created_at", startedAt);
+    if (cursor) query = query.gt("id", cursor);
+    const { data, error } = await query.range(0, 249);
+    if (error) return NextResponse.json({ error: "Report could not be generated. Try again." }, { status: 503 });
+    const map = new Map(data.map((tx) => [tx.id, tx]));
+    const items = await transactionItems(client, data.map((tx) => tx.id));
+    items.sort((a, b) => (map.get(b.transaction_id)?.borrowed_at ?? "").localeCompare(map.get(a.transaction_id)?.borrowed_at ?? "") || a.asset_code_snapshot.localeCompare(b.asset_code_snapshot));
+    const rows = items.map((item) => {
+      const tx = map.get(item.transaction_id)!;
+      return [tx.id,tx.borrower_name_snapshot,tx.borrower_student_id_snapshot,tx.borrower_year_section_snapshot,tx.borrower_group_snapshot,tx.borrowed_at,tx.completed_at,tx.status,item.asset_code_snapshot,item.tool_name_snapshot,item.item_status,item.issue_condition,item.return_condition,item.return_note,item.missing_at,item.missing_note];
+    });
+    if (rows.length) chunks.push(toCsv([], rows).slice(2));
+    if (data.length < 250) break;
+    cursor = data[data.length - 1].id;
+  }
+  return new NextResponse(chunks.join("\r\n"), { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="labtrack-history-' + new Date().toISOString().slice(0, 10) + '.csv"' } });
+});

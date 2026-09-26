@@ -14,9 +14,15 @@ export const registrationSchema = loginSchema.extend({
 });
 
 export const passwordSchema = z.object({
-  password: z.string().min(10).regex(/[A-Za-z]/, "Include a letter.").regex(/[0-9]/, "Include a number."),
+  password: z.string().min(10).max(128).regex(/[A-Za-z]/, "Include a letter.").regex(/[0-9]/, "Include a number."),
   confirmation: z.string(),
 }).refine((value) => value.password === value.confirmation, { path: ["confirmation"], message: "Passwords do not match." });
+
+export const profileSchema = z.object({
+  fullName: z.string().trim().min(2).max(120), studentId: z.string().trim().max(40),
+  yearSection: z.string().trim().max(60), groupNumber: z.string().trim().max(30),
+  contactNumber: z.string().trim().max(30),
+});
 
 export const toolBatchSchema = z.object({
   toolName: z.string().trim().min(2).max(120),

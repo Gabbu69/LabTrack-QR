@@ -2,20 +2,43 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { ArrowLeft, ArrowRight, CircleHelp, MousePointer2, Play, X } from "lucide-react";
 import { describeControl, describePage } from "@/lib/control-help";
+import { pageMission } from "@/lib/guide-missions";
 
 const selector = "button, a[href], summary, input:not([type=hidden]), select, textarea";
-type Control = { element: HTMLElement; label: string; description: string };
+type Control = { element: HTMLElement; label: string; description: string; result: string };
 
 function controlInfo(element: HTMLElement): Control {
   const field = element as HTMLInputElement;
   const label = (element.getAttribute("aria-label") || field.labels?.[0]?.textContent || element.textContent || element.getAttribute("placeholder") || "Control").replace(/\s+/g, " ").trim();
   const isField = /^(INPUT|SELECT|TEXTAREA)$/.test(element.tagName);
   const description = element.dataset.help || (isField
-    ? `${element.tagName === "SELECT" ? "Choose" : "Enter"} ${label.toLowerCase()}.${field.required ? " This field is required." : ""}${field.type === "password" ? " Keep this value private." : ""}`
+    ? field.type === "checkbox" ? `Tick ${label.toLowerCase()} to select it. Tap again to undo your selection.`
+      : field.type === "file" ? "Choose a clear image from your device. QR images must show the whole code. Profile photos must be JPG, PNG or WebP, up to 2 MB."
+      : `${element.tagName === "SELECT" ? "Choose" : "Enter"} ${label.toLowerCase()}.${field.required ? " Do not leave this field blank." : ""}${field.type === "password" ? " Keep this value private." : ""}${field.placeholder ? ` Example or hint: ${field.placeholder}.` : ""}`
+    : element.tagName === "SUMMARY" ? `Tap to open this section. ${element.closest(".transaction-row") ? "Read the tools, conditions and return notes inside. Tap the row again to close it." : describeControl(label, null)}`
     : describeControl(label, element.getAttribute("href")));
-  return { element, label: label.slice(0, 100), description };
+  const result = isField ? "Your choice stays in the form. Use its submit or save button when you have finished."
+    : element.tagName === "SUMMARY" ? "Shows or hides more details. Opening a section does not save changes."
+    : element.tagName === "A" ? (element.getAttribute("href")?.includes("transactions.csv") ? "Downloads the matching records as a CSV spreadsheet." : "Opens the linked page. Follow the next mission there.")
+    : /confirm checkout/i.test(label) ? "Creates a borrowing record and marks the scanned tools as Borrowed."
+    : /confirm return/i.test(label) ? "Saves the return of scanned tools. Unscanned tools stay outstanding."
+    : /sign in/i.test(label) ? "Checks your account and opens your dashboard when sign-in succeeds."
+    : /registration/i.test(label) ? "Creates a pending student account when registration succeeds."
+    : /remove |^change$/i.test(label) ? "Changes only the current selection; no stored transaction is deleted."
+    : /missing/i.test(label) ? "Marks the selected tools Missing and keeps their custody record open."
+    : /reset demo/i.test(label) ? "Replaces the fictional demo records with the starting scenario."
+    : /delete/i.test(label) ? "Permanently removes a never-used tool record."
+    : /camera|use code/i.test(label) ? "Finds a student or tool. Review the match before confirming a transaction."
+    : /print/i.test(label) ? "Opens your device's print dialog."
+    : /apply|filter/i.test(label) ? "Shows records matching the filters you chose."
+    : /log out/i.test(label) ? "Ends your session and returns to sign in."
+    : /approve|activate/i.test(label) ? "Sets the account to Active so the student can borrow."
+    : /disable/i.test(label) ? "Suspends account access while keeping its history."
+    : "Runs this action using the details you entered. Wait for a success message before continuing.";
+  return { element, label: label.slice(0, 100), description, result };
 }
 
 function visibleControls() {
@@ -73,7 +96,8 @@ function PageGuide({ pathname }: { pathname: string }) {
     if (!open || mode === "overview") return;
     function explain(event: Event) {
       if (event instanceof KeyboardEvent && event.key !== "Enter" && event.key !== " ") return;
-      const target = event.target instanceof Element ? event.target.closest<HTMLElement>(selector) : null;
+      const source = event.target instanceof Element ? event.target : null;
+      const target = source?.closest<HTMLElement>(selector) ?? source?.closest("label")?.querySelector<HTMLElement>("input,select,textarea");
       if (!target || target.closest("[data-guide-ui]")) return;
       event.preventDefault();
       event.stopPropagation();
@@ -90,13 +114,9 @@ function PageGuide({ pathname }: { pathname: string }) {
     try { localStorage.setItem("labtrack-guide-seen-v1", "yes"); } catch { /* Optional preference. */ }
     launcher.current?.focus();
   }
-  function show() { setOpen(true); setWelcome(false); setMode("overview"); setSelected(null); }
+  function show() { setOpen(true); setWelcome(false); setMode("overview"); setSelected(null); setDockTop(false); }
   function startTour() {
-    const seen = new Set<string>();
-    const controls = visibleControls().filter((element) => !element.closest("nav,.station-rail") && /^(BUTTON|A|SUMMARY)$/.test(element.tagName)).map(controlInfo).filter((control) => {
-      if (seen.has(control.description)) return false;
-      seen.add(control.description); return true;
-    }).slice(0, 7);
+    const controls = visibleControls().map(controlInfo);
     setSteps(controls); setIndex(0); setSelected(controls[0] ?? null); setMode("tour");
     panel.current?.focus();
   }
@@ -106,13 +126,14 @@ function PageGuide({ pathname }: { pathname: string }) {
   }
 
   return <div data-guide-ui className={`guide-root${open && dockTop ? " guide-dock-top" : ""}`}>
-    {!open && welcome && <div className="guide-welcome"><span>New here? Follow the page guide.</span><button type="button" onClick={dismiss} aria-label="Dismiss guide invitation" title="Dismiss guide invitation"><X aria-hidden="true" /></button></div>}
-    {!open && <button ref={launcher} type="button" className="guide-launcher" onClick={show} aria-label="Help and page guide" title="Help and page guide"><CircleHelp aria-hidden="true" /><span>Help & guide</span></button>}
+    {!open && welcome && <div className="guide-welcome"><span>New here? Learn one move at a time.</span><button type="button" onClick={dismiss} aria-label="Dismiss guide invitation" title="Hide this invitation. You can reopen How to play anytime."><X aria-hidden="true" /></button></div>}
+    {!open && <button ref={launcher} type="button" className="guide-launcher" onClick={show} aria-label="Help and page guide" title="Open missions and learn what each button does."><CircleHelp aria-hidden="true" /><span>How to play</span></button>}
     {open && <section className="guide-panel" ref={panel} tabIndex={-1} role="region" aria-label="Page guide">
       <header><CircleHelp aria-hidden="true" /><h2>{mode === "overview" ? "Your page guide" : mode === "inspect" ? "Explain a control" : "Page walkthrough"}</h2><button type="button" onClick={dismiss} aria-label="Close guide" title="Close guide"><X aria-hidden="true" /></button></header>
       <div className="guide-content" aria-live="polite">
-        {mode === "overview" ? <><p>{describePage(pathname)}</p><div className="guide-options"><button type="button" className="button button-primary" onClick={startTour}><Play aria-hidden="true" />Start page tour</button><button type="button" className="button button-secondary" onClick={() => { setMode("inspect"); setSelected(null); setDockTop(true); }}><MousePointer2 aria-hidden="true" />Explain a control</button></div><p className="guide-note">You can skip or reopen this guide anytime.</p></> : <>
-          {selected ? <><h3>{selected.label}</h3><p>{selected.description}</p>{(selected.element as HTMLButtonElement).disabled && <p className="guide-note">This control is currently unavailable. Complete the preceding selection or wait for the current action to finish.</p>}</> : <p>{mode === "inspect" ? "Select a button, link or field on this page to read its instructions." : "There are no actions to walk through yet. Open a section or try Explain a control."}</p>}
+        {mode === "overview" ? <><p>{describePage(pathname)}</p><ol className="guide-mission-steps">{pageMission(pathname).map((step) => <li key={step}>{step}</li>)}</ol><div className="guide-options"><button type="button" className="button button-primary" onClick={startTour} title="Walk through every visible button and field, one step at a time."><Play aria-hidden="true" />Start page tour</button><button type="button" className="button button-secondary" onClick={() => { setMode("inspect"); setSelected(null); setDockTop(true); }} title="Tap any control to read its instructions without activating it."><MousePointer2 aria-hidden="true" />Explain a control</button><Link href="/guide" className="button button-secondary">All training missions</Link></div><p className="guide-note">Learning mode: no forms are submitted and no tools are moved.</p></> : <>
+          {mode === "tour" && steps.length > 0 && <progress className="guide-progress" aria-label="Page tour progress" value={index + 1} max={steps.length} />}
+          {selected ? <><h3>{selected.label}</h3><p><strong>What it does</strong><br />{selected.result}</p><p><strong>How to use it</strong><br />{selected.description}</p>{(selected.element as HTMLButtonElement).disabled && <p className="guide-note">This button is locked for now. Finish the earlier fields or scans, or wait for the current request to finish.</p>}</> : <p>{mode === "inspect" ? "Tap a button, link or field on this page to learn your next move." : "No controls are visible yet. Open a section, then restart the tour."}</p>}
           <p className="guide-note">While this guide is open, selecting a control explains it. Close the guide to perform the action.</p>
         </>}
       </div>

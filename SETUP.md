@@ -1,95 +1,65 @@
 # Setup and Deployment
 
-This setup is performed once by the developer or deployment owner. Afterward, daily users only open the production website and sign in.
+Use Node **24.x**. Daily users need only the hosted website and their prepared account.
 
-## 1. Prerequisites
+## Existing backend
 
-- Node.js 24.x
-- A Supabase account with one free-project slot available
-- A Vercel account
+Use the owner-selected **Gabs Project**, `tsusogeqjduyahoskteb`. Do not create or reset a replacement backend. Copy `.env.example` to `.env.local`, supplying matching URL, publishable key, server secret and the privately supplied demo password. Keep the server secret out of `NEXT_PUBLIC_*` variables. Environment files are excluded from Git and deployment uploads.
 
-Do not reuse, pause, or delete an unrelated Supabase project merely to make room. Confirm the project screen still shows **$0/month** before creating the dedicated project.
+Student registration creates a pending student profile. The live project used automatic email confirmation when inspected on September 26, 2026; **custodian approval is still required**. If email confirmation is enabled later, students must also confirm their email. Retain custodian-managed password resets.
 
-## 2. Connect Supabase
-
-The existing **LabTrack QR** project is `pcbfmmtescndhrlarrsm` (Singapore). Its schema is applied. Restore this project from the Supabase dashboard if it is paused; wait for **Active / Healthy** before running SQL or signing in.
-
-1. Copy `.env.example` to `.env.local`. The public URL and publishable key already identify the dedicated project.
-2. Set `SUPABASE_SECRET_KEY` to this project's server-only secret from **Project Settings → API Keys**. Never commit `.env.local` or put the secret in a `NEXT_PUBLIC_` variable.
-3. Install dependencies using `npm ci` (Node.js 24.x).
-4. Link this project before applying future migrations:
-
-   ```powershell
-   npx supabase@2.116.0 login
-   npx supabase@2.116.0 link --project-ref pcbfmmtescndhrlarrsm
-   npm run db:push
-   ```
-
-5. Run database checks and generate current types:
-
-   ```powershell
-   npm run db:lint
-   npm run db:test
-   npm run db:types
-   ```
-
-The migration creates explicit table grants, RLS policies, atomic borrow/return functions, scope constraints, and the private `profile-photos` bucket.
-
-`npm run db:check` checks Auth, server-key access, table permissions, and private photo storage without changing records. `npm run db:test` runs rollback-only SQL tests. The generated types belong in `src/types/database.ts`, which is the file used by the app.
-
-For a different Supabase project, change `SUPABASE_PROJECT_REF`, the URL, and both keys together. The Vercel configuration helper checks that the URL matches the selected project reference.
-
-## 3. Bootstrap accounts and demo data
-
-Seven fictional demo accounts and twenty tools have already been created in the dedicated project. Their password is provided privately, never stored in Git. Set `DEMO_ACCOUNT_PASSWORD` in `.env.local` to that password if using the demo reset feature.
-
-To create operational staff accounts, use private, unique one-time passwords in `.env.local`, then run:
+Inspect live migration history before applying changes. Initial setup is only for an empty, separate development database. Validate migrations with `npm run test:db` first; apply only missing additive migrations to Gabs. The CLI requires a separate Supabase management login; a publishable project key is not a management token.
 
 ```powershell
-npm run bootstrap:staff
-npm run seed:demo
+npx supabase@2.116.0 login
+npx supabase@2.116.0 link --project-ref tsusogeqjduyahoskteb
+npx supabase@2.116.0 migration list
 ```
 
-The first command creates one operational custodian and instructor. The second creates one demo account per staff role, five fictional students, twenty fictional physical assets, and completed/active/incomplete examples. Staff must change their temporary password after first sign-in.
+Review pending SQL before using `npm run db:push`. Record applied versions and retain the previous deployment. `npm run db:check` is read-only. Never run destructive fixtures, reset scripts, or linked mutation tests against the shared backend.
 
-After bootstrap succeeds, remove the `BOOTSTRAP_*` values from local and hosted environments. Keep `DEMO_ACCOUNT_PASSWORD` only if the defense reset button is required.
-
-**Email confirmation:** public student registration uses Supabase Auth. With email confirmation enabled, students must confirm their email before signing in; custodian approval is also required. For an isolated classroom pilot, the project owner may choose automatic confirmation in Supabase Auth settings. Demo accounts are already confirmed.
-
-## 4. Verify locally
+## Local verification
 
 ```powershell
 npm ci
-npm run db:check
 npm run verify
-npm run test:smoke
-npx playwright install chromium
-npm run test:e2e
+npm run test:db
+npm audit
+npm start
 ```
 
-`npm run test:smoke` starts the production build, signs in the three demo roles, checks authorization, and borrows/returns `DMM-002` using `DEMO-2026-01`. It uses `E2E_DEMO_PASSWORD` or `DEMO_ACCOUNT_PASSWORD`, leaves a completed demo transaction in history, and never resets operational data. Ensure that `DMM-002` is available. Browser tests require Playwright Chromium; authenticated browser tests additionally require the documented `E2E_*` environment variables.
+Open <http://localhost:3000/login>. `test:db` creates a new loopback-only PostgreSQL cluster with a random password, applies all migrations, runs assertions and simultaneous checkout, then stops it. It ignores external database URLs. It emulates Supabase auth/storage database schemas; it does not emulate GoTrue, Storage HTTP or email delivery.
 
-For normal use, run `npm run dev` and open `http://localhost:3000`, or run `npm run build` then `npm start`. A GitHub push alone does not host the app or configure Vercel environment variables.
+In a second terminal, run shared-safe checks:
 
-Run the camera checks over HTTPS or `localhost`; ordinary HTTP on another device will not receive camera permission.
+```powershell
+node --env-file=.env.local scripts/smoke-demo.mjs
+node --env-file=.env.local scripts/smoke-http.mjs
+npx playwright install chromium
+$env:PLAYWRIGHT_BASE_URL='http://localhost:3000'
+node --env-file=.env.local node_modules/@playwright/test/cli.js test audit-readonly public-surfaces guide --workers=1
+```
 
-## 5. Deploy a Vercel preview
+For an exact hosted deployment, set `SMOKE_BASE_URL` and `PLAYWRIGHT_BASE_URL` to its HTTPS URL. Demo credentials are loaded from the ignored environment file. Authenticated audit traces are disabled to avoid saving passwords/cookies.
 
-1. Import the repository as a new Vercel project.
-2. Keep the detected Next.js settings and Node 24.x runtime.
-3. Add the environment values from `.env.local` to Preview and Production. Never create a `NEXT_PUBLIC_SUPABASE_SECRET_KEY` variable.
-4. Deploy Preview first.
-5. Add the exact preview and eventual production URLs to Supabase Authentication URL Configuration. Use the exact `/login` destination where a redirect path is requested.
-6. Exercise registration approval, staff temporary-password change, tool creation, label printing, checkout, complete and partial return, explicit missing, late recovery, CSV export, direct protected-route refresh, and sign-out over the Preview HTTPS URL.
-7. Promote that verified deployment to Production. Re-run the same smoke workflow on the exact production deployment URL before sharing the alias.
+`npm run test:smoke` and the mutating E2E suites require `E2E_ISOLATED_DATABASE=true` and reject the shared Gabs URL. Run them only on a separately provisioned disposable Supabase project with disposable accounts. `seed:demo` and the app's Reset demo control **replace demo records**; neither is a credential-retrieval command. Do not run them merely to test a login.
 
-## 6. Daily-use handoff
+## Vercel and GitHub
 
-Give users only the production `vercel.app` link and their prepared account. Custodians handle approvals and password resets from User Management. No local server or command-line use is required for students, custodians, or instructors.
+Use the existing `labtrack-qr` project, Node 24, and Next.js defaults. Set the five keys named in `scripts/configure-vercel.mjs` for Preview and Production; set `NEXT_PUBLIC_SITE_URL=https://labtrack-qr.vercel.app` for hosted releases. The helper sends values over stdin and checks the selected Gabs backend. Bootstrap credentials are not deployment inputs.
 
-## Troubleshooting
+1. Validate locally and on an isolated database.
+2. Apply and verify missing additive live migrations.
+3. Deploy a Preview and test its exact URL with read-only checks.
+4. Promote the verified Preview and repeat production smoke checks.
+5. Push the reviewed source to GitHub and verify the Node 24 workflow.
 
-- **Supabase is not configured:** confirm the URL and publishable key are present in the current environment, then restart the dev server or redeploy.
-- **Camera denied:** use the explicit Start camera button again after granting browser permission, or use USB scanner, typed code, or QR-image upload.
-- **Tool rejected at checkout:** confirm it is in the same data scope, available, serviceable, not archived, and not already scanned.
-- **Cannot deactivate custodian:** the current and last active custodian are intentionally protected.
+GitHub Actions runs lint, TypeScript, unit tests, isolated PostgreSQL tests, the production build and dependency audit without project credentials. A GitHub push alone does not configure hosting or Supabase.
+
+## Account administration and recovery
+
+Custodians approve students and create/reset staff accounts through User Management. Temporary credentials require a private password before operational APIs, RPCs, inventory or photo access become available. Remove `BOOTSTRAP_*` variables after one-time staff provisioning. Do not bootstrap or seed again on an established project.
+
+Password operations hold a server-only per-account lease while updating Supabase Auth. If a server process is killed mid-operation, access remains restricted. The deployment owner must first confirm no password operation remains active, inspect that account's Auth state, and then clear **only its `password_operation_id`** through a trusted management connection. Keep `must_change_password=true`; let the user complete another verified password change. Never clear all leases or clear the mandatory-change flag as a shortcut.
+
+Camera access needs HTTPS or localhost. If denied, use the labeled typed-code, USB scanner or image-upload alternatives. Hardware behavior must be checked on the intended client devices.

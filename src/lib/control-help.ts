@@ -1,6 +1,6 @@
 export const controlHelp: [RegExp, string][] = [
   [/^sign in$/i, "Enter your email and password, then sign in. New students can register below; a custodian approves borrowing access."],
-  [/register|submit registration/i, "Enter your own student details. Registration creates a pending account for the custodian to review."],
+  [/register|submit registration/i, "Fill in every student field, then press Submit registration once. Check your inbox to confirm your email. A custodian must approve borrowing access."],
   [/log out/i, "End your session before leaving this device, especially at a shared laboratory counter."],
   [/confirm checkout/i, "Check the student and every physical tool in the list. This records the handoff and makes those tools unavailable to other borrowers."],
   [/confirm return/i, "Accept only the physical tools you scanned. Check their condition first. Anything unscanned remains outstanding."],
@@ -15,11 +15,11 @@ export const controlHelp: [RegExp, string][] = [
   [/print/i, "Open the print dialog, check the label size, and print at 100% scale. Attach each label to the matching physical tool and test a scan."],
   [/delete/i, "Delete only a mistaken tool record that has never been issued. Archive tools with history instead."],
   [/save.*profile|update.*profile/i, "Check your identity and contact details before saving. Use your own student ID."],
-  [/save.*tool|update.*tool|save changes/i, "Save the edited record. Use the return workflow to reconcile issued or missing tools."],
+  [/save.*tool|save asset|update.*tool|save changes/i, "Check the tool name, category, condition and status, then save. Use Process Return to resolve borrowed or missing tools."],
   [/export.*csv/i, "Download the transactions matching your current filters as a spreadsheet-compatible CSV report."],
-  [/^filter$|apply filters/i, "Apply the search text, status and date selections to narrow the records shown."],
+  [/^filter$|^apply$|apply filters/i, "Enter your search or choose a status and date range. Press this button to show only matching records."],
   [/clear|reset filters/i, "Remove the current search selections and show the full list available to your account."],
-  [/start camera/i, "Allow camera access when prompted, then hold one QR label steady inside the frame. A USB scanner or typed code also works."],
+  [/start (rear )?camera/i, "Press this button and allow camera access. Hold one whole QR label steady inside the frame. No camera? Type the code and press Use code."],
   [/stop camera/i, "Release the camera when scanning is finished. You can still use a USB scanner or enter a code."],
   [/upload|image|photo/i, "Choose a clear image from this device. For scanning, the full QR code must be visible; profile photos must be JPG, PNG or WebP up to 2 MB."],
   [/use code/i, "Scan into or type in the code field, then check the matching student or tool before continuing."],
@@ -41,8 +41,9 @@ const destinations: Record<string, string> = {
   "/borrowed": "Check the tools still assigned to you and bring every physical tool back to the custodian.",
   "/scan": "Choose a borrowing or return workflow before scanning. QR codes identify records; the custodian confirms each transaction.",
   "/login": "Sign in with your assigned account. Students who do not have an account can register.",
-  "/register": "Complete your student details, then wait for the custodian to approve borrowing access.",
+  "/register": "Create your student account, confirm your email, then wait for custodian approval.",
   "/change-password": "Replace your temporary password with one only you know before continuing.",
+  "/guide": "Pick your role, follow one mission at a time, and tick off the instructions you have learned.",
 };
 
 export function describeControl(label: string, href?: string | null) {

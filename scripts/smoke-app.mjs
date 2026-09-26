@@ -1,3 +1,4 @@
+if (process.env.E2E_ISOLATED_DATABASE !== "true" || !process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes("tsusogeqjduyahoskteb")) throw new Error("Mutating smoke tests require an isolated backend. Use scripts/smoke-http.mjs for shared smoke checks.");
 // Exercises a production build over HTTP against the isolated demo scope.
 // Leaves a completed demo checkout in history; never resets existing data.
 import assert from "node:assert/strict";

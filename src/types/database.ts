@@ -23,6 +23,7 @@ export type Database = {
           full_name: string
           group_number: string | null
           id: string
+          password_operation_id: string | null
           must_change_password: boolean
           photo_path: string | null
           qr_token: string
@@ -40,6 +41,7 @@ export type Database = {
           full_name: string
           group_number?: string | null
           id: string
+          password_operation_id?: string | null
           must_change_password?: boolean
           photo_path?: string | null
           qr_token?: string
@@ -57,6 +59,7 @@ export type Database = {
           full_name?: string
           group_number?: string | null
           id?: string
+          password_operation_id?: string | null
           must_change_password?: boolean
           photo_path?: string | null
           qr_token?: string
@@ -275,6 +278,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      dashboard_summary: { Args: Record<PropertyKey, never>; Returns: Json }
       borrow_tools: {
         Args: { p_borrower_token: string; p_tool_tokens: string[] }
         Returns: string
@@ -335,6 +339,7 @@ export type Database = {
           full_name: string
           group_number: string | null
           id: string
+          password_operation_id: string | null
           must_change_password: boolean
           photo_path: string | null
           qr_token: string
@@ -368,6 +373,7 @@ export type Database = {
           full_name: string
           group_number: string | null
           id: string
+          password_operation_id: string | null
           must_change_password: boolean
           photo_path: string | null
           qr_token: string

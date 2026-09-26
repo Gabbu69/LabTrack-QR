@@ -16,8 +16,11 @@ The application uses Next.js 16, React 19, TypeScript, Tailwind CSS, Supabase Po
 1. Follow [SETUP.md](./SETUP.md) once to connect Supabase and Vercel.
 2. Use [DEFENSE_WALKTHROUGH.md](./DEFENSE_WALKTHROUGH.md) for the thesis demonstration.
 3. Read [VERIFICATION.md](./VERIFICATION.md) for what has and has not been directly verified.
+4. Open `/guide` for role-based training missions, or press **How to play** on any page for a tour and individual control explanations. Learning checkmarks save on the current device.
 
-Local development uses `npm ci` and `npm run dev` after copying `.env.example` to `.env.local`. Use `npm run db:check` for the live connection, `npm run db:test` for SQL/RLS tests, `npm run verify` for static checks and the production build, and `npm run test:smoke` for the running app against demo accounts. See SETUP.md for the required private server key.
+Local development requires Node 24: run `npm ci` and `npm run dev` after copying `.env.example` to `.env.local`. Use `npm run db:check` for a read-only live connection check, `npm run test:db` for disposable PostgreSQL workflow/RLS/concurrency tests, and `npm run verify` for static checks and the production build. See [SETUP.md](./SETUP.md) for read-only hosted smoke commands. Mutating smoke tests are blocked against the shared Gabs backend.
+
+Read [AUDIT_REPORT.md](./AUDIT_REPORT.md) for the current audit and verification limits, and [CLIENT_GUIDE.md](./CLIENT_GUIDE.md) for the client walkthrough. Demo passwords are delivered privately and are never committed.
 
 ## Security model
 
