@@ -18,25 +18,25 @@ export function CustodianDashboard({ name, role, metrics, categories, borrowers 
 }) {
   const readOnly = role === "instructor";
   return (
-    <>
+    <div className="dashboard-home">
       <header className="workspace-header">
-        <div><h1>{readOnly ? "LABORATORY STATUS" : "TOOL-CRIB CHECKOUT COUNTER"}</h1><p>Welcome back, {name}.</p></div>
+        <div><p className="dashboard-eyebrow">{readOnly ? "Instructor overview" : "Custodian workspace"}</p><h1>{readOnly ? "Laboratory status" : "Tool crib dashboard"}</h1><p>Welcome back, {name}. Here is what needs your attention today.</p></div>
         <Link className="scan-shortcut" href={readOnly ? "/history" : "/scan"}>
           {readOnly ? <BarChart3 aria-hidden="true" /> : <QrCode aria-hidden="true" />}
           <span><strong>{readOnly ? "Review borrowing records" : "Scan Student Mechanic Leader QR"}</strong><small>{readOnly ? "inventory and custody are read-only" : "to begin checkout or return"}</small></span>
         </Link>
       </header>
       <section className="metric-ribbon" aria-label="Inventory overview">
-        <Metric icon={Box} label="TOTAL TOOLS" value={metrics.total} />
-        <Metric icon={CircleCheck} label="AVAILABLE" value={metrics.available} tone="success" />
-        <Metric icon={UserRound} label="BORROWED" value={metrics.borrowed} />
-        <Metric icon={TriangleAlert} label="MISSING" value={metrics.missing} tone="warning" />
-        <Metric icon={History} label="ACTIVE TRANSACTIONS" value={metrics.activeTransactions} tone="violet" />
+        <Metric icon={Box} label="Total tools" value={metrics.total} />
+        <Metric icon={CircleCheck} label="Available" value={metrics.available} tone="success" />
+        <Metric icon={UserRound} label="Borrowed" value={metrics.borrowed} />
+        <Metric icon={TriangleAlert} label="Missing" value={metrics.missing} tone="warning" />
+        <Metric icon={History} label="Active transactions" value={metrics.activeTransactions} tone="violet" />
         <Link className="metric-view" href="/history">View all <ChevronRight aria-hidden="true" /></Link>
       </section>
       <section className="counter-grid">
         <section className="counter-panel inventory-panel">
-          <header><h2>READY FOR ISSUE</h2><p>Tools available by category</p></header>
+          <header><h2>Ready for issue</h2><p>Tools available by category</p></header>
           <div className="category-list">
             {categories.length === 0 ? <EmptyRows text="No tools have been added yet." /> : categories.slice(0, 6).map(({ label, total, available }) => (
               <Link className="category-row" href={`/tools?category=${encodeURIComponent(label)}`} key={label}>
@@ -49,7 +49,7 @@ export function CustodianDashboard({ name, role, metrics, categories, borrowers 
           <Link className="panel-footer" href="/tools">View all inventory <ChevronRight aria-hidden="true" /></Link>
         </section>
         <section className="counter-panel actions-panel">
-          <header><h2>{readOnly ? "REVIEW AREAS" : "COUNTER ACTIONS"}</h2><p>{readOnly ? "Read-only laboratory monitoring" : "Scan QR or choose an action"}</p></header>
+          <header><h2>{readOnly ? "Review areas" : "Quick actions"}</h2><p>{readOnly ? "Read-only laboratory monitoring" : "Scan a QR code or choose an action"}</p></header>
           <div className="action-stack">
             {readOnly ? <>
               <Link className="action-control primary" href="/tools"><span className="action-icon"><Wrench aria-hidden="true" /></span><span><strong>VIEW INVENTORY</strong><small>Monitor tool condition and availability</small></span><ChevronRight aria-hidden="true" /></Link>
@@ -62,7 +62,7 @@ export function CustodianDashboard({ name, role, metrics, categories, borrowers 
           </div>
         </section>
         <section className="counter-panel custody-panel">
-          <header><h2>CUSTODY NOW</h2><p>Current borrowers with active tool sets</p></header>
+          <header><h2>Currently in custody</h2><p>Borrowers with active tool sets</p></header>
           <div className="borrower-list">
             {borrowers.length === 0 ? <EmptyRows text="No active tool custody." /> : borrowers.slice(0, 6).map((borrower) => (
               <Link className="borrower-row" href={`/history?student=${encodeURIComponent(borrower.studentId)}`} key={borrower.studentId}>
@@ -73,7 +73,7 @@ export function CustodianDashboard({ name, role, metrics, categories, borrowers 
           <Link className="panel-footer" href="/history?status=active">View all active transactions <ChevronRight aria-hidden="true" /></Link>
         </section>
       </section>
-    </>
+    </div>
   );
 }
 

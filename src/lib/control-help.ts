@@ -25,7 +25,7 @@ export const controlHelp: [RegExp, string][] = [
   [/use code/i, "Scan into or type in the code field, then check the matching student or tool before continuing."],
   [/^remove /i, "Remove this item from the current scan list. No stored transaction is changed."],
   [/^change$|start again/i, "Clear the current selection and identify the correct student before scanning tools."],
-  [/^menu$/i, "Open the navigation menu to move between the pages available to your role."],
+  [/^(open |close )?menu$/i, "Open or close the side menu to move between the pages available to your role."],
 ];
 
 const destinations: Record<string, string> = {

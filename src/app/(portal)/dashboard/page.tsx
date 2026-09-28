@@ -18,15 +18,15 @@ export default async function DashboardPage() {
   if (profile.role === "student") {
     const outstanding = snapshot.student.items;
     return (
-      <div className="page-wrap">
-        <PageHeader eyebrow="STUDENT MECHANIC LEADER" title={`WELCOME, ${profile.full_name.toUpperCase()}`} description="Show your personal QR to the custodian when borrowing or returning laboratory tools." actions={<Link className="button button-primary" href="/my-qr"><QrCode aria-hidden="true" />Show my QR</Link>} />
+      <div className="page-wrap student-dashboard">
+        <PageHeader eyebrow="STUDENT MECHANIC LEADER" title={`Welcome, ${profile.full_name}`} description="Show your personal QR to the custodian when borrowing or returning laboratory tools." actions={<Link className="button button-primary" href="/my-qr"><QrCode aria-hidden="true" />Show my QR</Link>} />
         {profile.status === "pending" && <div className="notice warning"><UserCheck aria-hidden="true" /><div><strong>Approval pending</strong><p>Your profile is ready, but a custodian must approve it before tools can be issued.</p></div></div>}
         <section className="summary-grid">
           <article className="summary-card"><PackageCheck aria-hidden="true" /><span><small>Currently borrowed</small><strong>{snapshot.student.borrowed}</strong></span></article>
           <article className="summary-card warning"><History aria-hidden="true" /><span><small>Marked missing</small><strong>{snapshot.student.missing}</strong></span></article>
           <article className="summary-card"><QrCode aria-hidden="true" /><span><small>Total transactions</small><strong>{snapshot.student.transactions}</strong></span></article>
         </section>
-        <section className="content-card"><div className="card-heading"><div><h2>TOOLS IN YOUR CUSTODY</h2><p>These items still need to be returned to the custodian.</p></div><Link className="text-link" href="/borrowed">View details</Link></div>
+        <section className="content-card"><div className="card-heading"><div><h2>Tools in your custody</h2><p>These items still need to be returned to the custodian.</p></div><Link className="text-link" href="/borrowed">View details</Link></div>
           {outstanding.length === 0 ? <div className="empty-state"><PackageCheck aria-hidden="true" /><h3>No tools in your custody</h3><p>Your currently borrowed tools will appear here.</p></div> : <div className="table-wrap"><table><thead><tr><th>Asset code</th><th>Tool</th><th>Status</th></tr></thead><tbody>{outstanding.slice(0, 8).map((item) => <tr key={item.id}><td className="mono">{item.asset_code_snapshot}</td><td>{item.tool_name_snapshot}</td><td><StatusBadge value={item.item_status} /></td></tr>)}</tbody></table></div>}
         </section>
       </div>

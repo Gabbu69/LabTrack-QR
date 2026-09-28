@@ -24,8 +24,8 @@ async function resetDemo(page: Page) {
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Reset demo" }).click();
   await expect(page.getByRole("button", { name: "Reset demo" })).toBeEnabled({ timeout: 30_000 });
-  await expect(page.getByText("TOTAL TOOLS")).toBeVisible();
-  await expect(page.locator(".metric").filter({ hasText: "TOTAL TOOLS" }).locator("strong")).toHaveText("20");
+  await expect(page.getByText("Total tools", { exact: true })).toBeVisible();
+  await expect(page.locator(".metric").filter({ hasText: "Total tools" }).locator("strong")).toHaveText("20");
 }
 
 test.describe("authenticated release workflows", () => {
@@ -93,7 +93,7 @@ test.describe("authenticated release workflows", () => {
     await page.getByLabel("Confirm password").fill(privatePassword);
     await page.getByRole("button", { name: "Save password and continue" }).click();
     await expect(page).toHaveURL(/\/dashboard/);
-    await expect(page.getByText("LABORATORY STATUS")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Laboratory status" })).toBeVisible();
 
     await page.getByRole("button", { name: "Log Out" }).click();
     await login(page, demoCustodianEmail, demoPassword!);
@@ -102,13 +102,13 @@ test.describe("authenticated release workflows", () => {
 
   test("instructor and student direct-route authorization is enforced", async ({ page }) => {
     await login(page, demoInstructorEmail, demoPassword!);
-    await expect(page.getByText("LABORATORY STATUS")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Laboratory status" })).toBeVisible();
     await page.goto("/borrow");
     await expect(page).toHaveURL(/\/dashboard\?error=/);
     await page.getByRole("button", { name: "Log Out" }).click();
 
     await login(page, demoStudentEmail, demoPassword!);
-    await expect(page.getByRole("heading", { name: /WELCOME, JORDAN MITCHELL/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome, Jordan Mitchell" })).toBeVisible();
     await page.goto("/my-qr");
     await expect(page.getByText("PERSONAL BORROWER QR")).toBeVisible();
     await page.goto("/tools");
@@ -141,6 +141,6 @@ test.describe("authenticated release workflows", () => {
     await page.getByRole("button", { name: "Log Out" }).click();
 
     await login(page, email, password);
-    await expect(page.getByRole("heading", { name: /WELCOME, E2E STUDENT MECHANIC/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome, E2E Student Mechanic" })).toBeVisible();
   });
 });
