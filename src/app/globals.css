@@ -616,7 +616,7 @@ body:has(.portal-drawer[open]) { overflow: hidden; }
   .report-actions { flex-wrap: wrap; }
 }
 @media print {
-  body:has(.lab-history-report) { background: #fff; }
+  html:has(.lab-history-report), body:has(.lab-history-report) { background: #fff; }
   body:has(.lab-history-report) .station-shell, body:has(.lab-history-report) .station-workspace { min-height: 0; background: #fff; }
   .report-actions { display: none !important; }
   .lab-history-report { padding: 0; border: 0; border-radius: 0; color: #000; }
