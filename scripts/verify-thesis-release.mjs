@@ -23,7 +23,7 @@ try {
     if (role === "custodian") {
       await page.screenshot({ path: `${output}/report-desktop.png`, fullPage: true });
       await page.pdf({ path: "output/pdf/LabTrack-Demo-Borrowing-Report.pdf", format: "A4", preferCSSPageSize: true, printBackground: true });
-      await page.goto(new URL("/history/print?q=Jordan&status=active", base).href);
+      await page.goto(new URL("/history/print?q=Jordan&status=returned", base).href);
       assert.equal(await page.locator(".report-transaction").count(), 1, "Report filters are applied");
       assert.match(await page.getByRole("link", { name: "Back to history" }).getAttribute("href"), /q=Jordan/);
     }

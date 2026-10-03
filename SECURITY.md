@@ -11,7 +11,7 @@
 
 ## Installation and verification
 
-Apply missing migrations in version order, including `supabase/migrations/20260930010000_login_protection.sql` followed by `supabase/migrations/20261002010000_require_mfa.sql`, before running this version against a hosted database. Inspect `npx supabase@2.116.0 db push --linked --dry-run` before applying migrations. Confirm TOTP enrollment and verification are enabled in the selected Supabase Auth configuration. Deploy the app separately after verification.
+Inspect live migration history and review pending SQL with a compatible CLI (`npx supabase@2.75.0 db push --linked --dry-run`) or the trusted Management API. Apply the login-protection prerequisite `20260930010000_login_protection.sql` first. Confirm TOTP enrollment and verification are enabled, test a Preview, then make the verified application available in Production before applying `20261002010000_require_mfa.sql` transactionally. Verify the live database gate and hosted MFA afterward. See SETUP.md for the coordinated sequence.
 
 Coordinate the MFA migration with the application release. It immediately denies password-only operational access for every deployment sharing that database, including an older production release without an MFA screen. Keep the trusted owner management connection available and communicate the enrollment requirement before rollout.
 
