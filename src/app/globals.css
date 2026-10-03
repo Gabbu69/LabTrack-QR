@@ -617,6 +617,7 @@ body:has(.portal-drawer[open]) { overflow: hidden; }
 }
 @media print {
   body:has(.lab-history-report) { background: #fff; }
+  body:has(.lab-history-report) .station-shell, body:has(.lab-history-report) .station-workspace { min-height: 0; background: #fff; }
   .report-actions { display: none !important; }
   .lab-history-report { padding: 0; border: 0; border-radius: 0; color: #000; }
   .report-heading h1 { font-size: 19pt; }
