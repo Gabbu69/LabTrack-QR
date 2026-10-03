@@ -278,6 +278,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      consume_login_attempt: {
+        Args: { p_key: string }
+        Returns: boolean
+      }
       dashboard_summary: { Args: Record<PropertyKey, never>; Returns: Json }
       borrow_tools: {
         Args: { p_borrower_token: string; p_tool_tokens: string[] }

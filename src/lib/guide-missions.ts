@@ -10,24 +10,24 @@ const helpMission: Mission = {
 export const missions: Record<GuideRole, Mission[]> = {
   student: [helpMission, {
     title: "Create your student account", href: "/register",
-    steps: ["Press Register an account on the sign-in page.", "Enter your full name, student ID, year/section, group, phone number and email. Choose a password with at least 8 characters.", "Press Submit registration once. Check your inbox for the confirmation link, then ask the custodian to approve your account."],
-    success: "Your email is confirmed and your account is Active. A Pending account is waiting for approval.",
+    steps: ["Press Register an account on the sign-in page.", "Enter your full name, student ID, year/section, group, phone number and email. Choose a password with at least 8 characters.", "Press Submit registration once. Confirm your email only if the registration message asks you to check your inbox. Ask the custodian to approve your account."],
+    success: "Your account is Active after custodian approval. A Pending account is waiting for approval.",
   }, {
     title: "Sign in and get your QR", href: "/my-qr",
-    steps: ["Enter your email and password, then press Sign in.", "If asked to change a temporary password, enter the new password twice and press Save password and continue.", "Press Show my QR or My QR. Show this screen to the custodian when borrowing or returning tools."],
-    success: "Your personal QR is visible. Keep your password private; the QR only identifies your record.",
+    steps: ["Enter your email and password, then press Sign in. Personal accounts must set up an authenticator or enter its current 6-digit code; shared demo accounts are exempt.", "After authenticator verification, change a temporary password if requested. Enter the new password twice and press Save password and continue.", "Press Show my QR or My QR. Show this screen to the custodian when borrowing or returning tools."],
+    success: "Your personal QR is visible after sign-in. Keep your password and authenticator setup key private; the QR only identifies your record.",
   }, {
     title: "Borrow and bring everything back", href: "/borrowed",
     steps: ["Let the custodian scan your QR and each physical tool before handing the tools to you.", "Open My borrowed tools to check what is assigned to you.", "Bring the tools to the custodian for return. Check that returned tools leave your outstanding list."],
     success: "No tools remain outstanding after the custodian accepts a complete return.",
   }, {
     title: "Save your profile and sign out", href: "/profile",
-    steps: ["Open Profile, update your details and optionally choose a JPG, PNG or WebP photo up to 2 MB.", "Press Save profile and wait for the success message.", "Press Log Out before leaving a shared device."],
+    steps: ["Open Profile, update your details and optionally choose a JPG, PNG or WebP photo up to 2 MB.", "Press Save profile and wait for the success message. For personal accounts, use Manage authenticators to add and verify a backup before replacing your phone.", "Press Log Out before leaving a shared device."],
     success: "Your details are saved and the sign-in page appears after Log Out.",
   }],
   custodian: [helpMission, {
     title: "Unlock a student account", href: "/users",
-    steps: ["Sign in with your prepared custodian account and open User Management.", "Find the student and verify their name, student ID and section.", "Press Approve / activate. Use Disable only to suspend access; it does not erase borrowing history."],
+    steps: ["Sign in with your prepared custodian account, complete authenticator verification for a personal account, and open User Management.", "Find the student and verify their name, student ID and section.", "Press Approve / activate. Use Disable only to suspend access; it does not erase borrowing history."],
     success: "The student shows Active and can be selected for checkout.",
   }, {
     title: "Add tools and print labels", href: "/tools",
@@ -47,16 +47,16 @@ export const missions: Record<GuideRole, Mission[]> = {
     success: "The record preserves the missing incident even after a recovered tool is returned.",
   }, {
     title: "Manage staff and reports", href: "/users",
-    steps: ["Open Create a staff account. Enter name, email, role and a one-time password of at least 10 characters; press Create staff account.", "To help a locked-out user, open Reset password, enter a one-time password and press Set. Give it to that person privately.", "Open History, choose filters and press Apply. Press Export CSV to download matching records."],
-    success: "Staff change temporary passwords on sign-in. The report contains the records matching your filters.",
+    steps: ["Open Create a staff account. Enter name, email, role and a one-time password of at least 10 characters; press Create staff account.", "For a forgotten password, open Reset password, enter a one-time password and press Set. Give it to that person privately. This does not remove authenticator protection.", "Open History, choose filters and press Apply. Press Export CSV to download matching records."],
+    success: "Staff verify an authenticator before changing a temporary password on personal-account sign-in. The report contains the records matching your filters.",
   }, {
     title: "Practice in the demo area", href: "/dashboard",
-    steps: ["Use a prepared demo account and check that the demo banner is visible.", "Practice checkout and return with the fictional students and labelled demo tools.", "Use Reset demo only when you want to restart the fictional scenario. Your current demo transactions will be replaced."],
+    steps: ["Use a prepared demo account and check that the demo banner is visible. Shared demo accounts do not require authenticator setup or codes.", "Practice checkout and return with the fictional students and labelled demo tools.", "Use Reset demo only when you want to restart the fictional scenario. Your current demo transactions will be replaced."],
     success: "Demo records stay separate from the real laboratory's records.",
   }],
   instructor: [helpMission, {
     title: "Inspect the laboratory", href: "/dashboard",
-    steps: ["Sign in with your instructor account and change your temporary password if asked.", "Read Available, Borrowed and Missing on the dashboard.", "Press View Inventory, then open an asset code to see its condition and history."],
+    steps: ["Sign in with your instructor account. For a personal account, verify your authenticator before changing a temporary password if requested; shared demos are exempt.", "Read Available, Borrowed and Missing on the dashboard.", "Press View Inventory, then open an asset code to see its condition and history."],
     success: "You can inspect records. Checkout, return and account changes are performed by custodians.",
   }, {
     title: "Find a record and export it", href: "/history",
@@ -67,7 +67,7 @@ export const missions: Record<GuideRole, Mission[]> = {
 
 export function pageMission(path: string): string[] {
   if (path === "/login") return ["Enter your email and password.", "Press Sign in, or Register an account if you are a new student.", "Confirm your email and wait for approval if asked."];
-  if (path === "/register") return ["Fill in all seven fields with your own details.", "Press Submit registration once.", "Confirm your email, then ask the custodian to approve your account."];
+  if (path === "/register") return ["Fill in all seven fields with your own details.", "Press Submit registration once.", "Confirm your email if requested, then ask the custodian to approve your account."];
   const mission = missions.custodian.find((item) => item.href === path) ?? missions.student.find((item) => item.href === path);
   return mission?.steps ?? ["Choose Explain a control.", "Tap the button or field you want to learn.", "Close the guide and perform the action when ready."];
 }

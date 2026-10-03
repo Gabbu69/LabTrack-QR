@@ -7,6 +7,8 @@
 /playwright-report
 /tests
 /.audit-evidence
+/output
+.labtrack-workspace
 /.github
 /scripts
 /.impeccable

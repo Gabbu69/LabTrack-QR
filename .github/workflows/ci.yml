@@ -24,4 +24,4 @@ jobs:
       - run: npm test -- --maxWorkers=1
       - run: npm run test:db
       - run: npm run build
-      - run: npm audit --audit-level=high
+      - run: npm run audit:security

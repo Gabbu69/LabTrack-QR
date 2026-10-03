@@ -47,6 +47,8 @@ values
   ('11000000-0000-4000-8000-000000000006', 'WFT-006', 'Damaged Tool', '', 'Testing', 'damaged', 'unavailable', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000001', 'operational', '01000000-0000-4000-8000-000000000001', null),
   ('11000000-0000-4000-8000-000000000007', 'DMW-001', 'Demo Tool', '', 'Testing', 'good', 'available', '21000000-0000-4000-8000-000000000007', '31000000-0000-4000-8000-000000000002', 'demo', '01000000-0000-4000-8000-000000000006', null);
 
+-- Workflow fixtures represent accounts that completed their second factor.
+select set_config('request.jwt.claims', '{"aal":"aal2"}', true);
 select set_config('request.jwt.claim.sub', '01000000-0000-4000-8000-000000000001', true);
 set local role authenticated;
 

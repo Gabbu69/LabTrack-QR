@@ -2,12 +2,16 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import { consumeLoginAttempt } from "@/lib/login-limit";
+import { authCookieOptions, IDLE_SECONDS, SESSION_COOKIE, signSession } from "@/lib/session-policy";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { requireProfile } from "@/lib/auth";
 import { performPasswordUpdate } from "@/lib/password-operation";
 import { normalizeProfilePhoto } from "@/lib/profile-photo";
 import { loginSchema, passwordSchema, registrationSchema, profileSchema } from "@/lib/validation";
+import { requiresMfa } from "@/lib/mfa";
 
 function value(formData: FormData, key: string) { return String(formData.get(key) ?? ""); }
 function go(path: string, key: "error" | "message", message: string): never {
@@ -18,13 +22,23 @@ export async function loginAction(formData: FormData) {
   if (!isSupabaseConfigured()) go("/login", "error", "Supabase is not configured yet. Follow SETUP.md to connect the project.");
   const parsed = loginSchema.safeParse({ email: value(formData, "email"), password: value(formData, "password") });
   if (!parsed.success) go("/login", "error", parsed.error.issues[0]?.message ?? "Check your login details.");
+  let allowed = false;
+  try { allowed = await consumeLoginAttempt(parsed.data.email); }
+  catch { go("/login", "error", "Sign-in is temporarily unavailable. Please try again later."); }
+  if (!allowed) go("/login", "error", "Too many sign-in attempts. Please wait 15 minutes before trying again.");
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error?.code === "email_not_confirmed") go("/login", "error", "Confirm your email using the link in your inbox, then sign in again.");
   if (error || !data.user) go("/login", "error", "Email or password is incorrect.");
-  const { data: profile } = await supabase.from("profiles").select("status,must_change_password").eq("id", data.user.id).maybeSingle();
+  const { data: profile } = await supabase.from("profiles").select("status,must_change_password,data_scope").eq("id", data.user.id).maybeSingle();
   if (!profile) { await supabase.auth.signOut(); go("/login", "error", "Your profile is not ready. Ask the custodian for help."); }
   if (profile.status === "disabled") { await supabase.auth.signOut(); go("/login", "error", "This account has been disabled. Contact the custodian."); }
+  const { data: verified, error: claimsError } = await supabase.auth.getClaims();
+  const sessionId = verified?.claims?.session_id;
+  if (claimsError || verified?.claims?.sub !== data.user.id || typeof sessionId !== "string") { await supabase.auth.signOut(); go("/login", "error", "Session could not be established. Please sign in again."); }
+  const now = Math.floor(Date.now() / 1000);
+  (await cookies()).set(SESSION_COOKIE, signSession({ user: data.user.id, session: sessionId, started: now, seen: now }), { ...authCookieOptions, maxAge: IDLE_SECONDS });
+  if (requiresMfa(profile, verified?.claims?.aal)) redirect("/two-factor");
   redirect(profile.must_change_password ? "/change-password" : "/dashboard");
 }
 
@@ -95,6 +109,7 @@ export async function updateProfileAction(formData: FormData) {
 }
 
 export async function signOutAction() {
+  (await cookies()).delete(SESSION_COOKIE);
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
     await supabase.auth.signOut();

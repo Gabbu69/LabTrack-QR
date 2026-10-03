@@ -10,6 +10,8 @@
 /playwright-report
 /test-results
 /.audit-evidence
+/output
+.labtrack-workspace
 
 # local environment
 .env*

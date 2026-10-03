@@ -1,6 +1,6 @@
 export const controlHelp: [RegExp, string][] = [
   [/^sign in$/i, "Enter your email and password, then sign in. New students can register below; a custodian approves borrowing access."],
-  [/register|submit registration/i, "Fill in every student field, then press Submit registration once. Check your inbox to confirm your email. A custodian must approve borrowing access."],
+  [/register|submit registration/i, "Fill in every student field, then press Submit registration once. If the sign-in page asks you to confirm your email, follow the link in your inbox. A custodian must approve borrowing access."],
   [/log out/i, "End your session before leaving this device, especially at a shared laboratory counter."],
   [/confirm checkout/i, "Check the student and every physical tool in the list. This records the handoff and makes those tools unavailable to other borrowers."],
   [/confirm return/i, "Accept only the physical tools you scanned. Check their condition first. Anything unscanned remains outstanding."],
@@ -12,6 +12,7 @@ export const controlHelp: [RegExp, string][] = [
   [/create.*staff/i, "Create an account only for an authorized custodian or instructor. Give them the temporary password privately."],
   [/save password/i, "Use at least 10 characters with a letter and a number. Enter the same password twice to finish the required password change."],
   [/create assets|add a tool batch/i, "Count the actual tools and enter their name, condition and code prefix. Each unit gets its own permanent asset code and QR label."],
+  [/print.*report/i, "Review the dates, filters and borrower records, then print the A4 report. It includes all matching records available to your account."],
   [/print/i, "Open the print dialog, check the label size, and print at 100% scale. Attach each label to the matching physical tool and test a scan."],
   [/delete/i, "Delete only a mistaken tool record that has never been issued. Archive tools with history instead."],
   [/save.*profile|update.*profile/i, "Check your identity and contact details before saving. Use your own student ID."],
@@ -41,7 +42,7 @@ const destinations: Record<string, string> = {
   "/borrowed": "Check the tools still assigned to you and bring every physical tool back to the custodian.",
   "/scan": "Choose a borrowing or return workflow before scanning. QR codes identify records; the custodian confirms each transaction.",
   "/login": "Sign in with your assigned account. Students who do not have an account can register.",
-  "/register": "Create your student account, confirm your email, then wait for custodian approval.",
+  "/register": "Create your student account, confirm your email if requested, then wait for custodian approval.",
   "/change-password": "Replace your temporary password with one only you know before continuing.",
   "/guide": "Choose your role, follow the workflow instructions, and mark the sections you have reviewed.",
 };

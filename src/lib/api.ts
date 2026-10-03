@@ -1,6 +1,6 @@
 import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
-import { getProfile } from "@/lib/auth";
+import { getAuthContext } from "@/lib/auth";
 import { accessFailure, type AccessOptions } from "@/lib/access-policy";
 import type { Profile } from "@/types/app";
 
@@ -13,8 +13,9 @@ export function apiRoute(options: AccessOptions, handler: (request: NextRequest,
           return NextResponse.json({ error: "This request must come from LabTrack.", code: "INVALID_ORIGIN" }, { status: 403 });
         }
       }
-      const profile = await getProfile();
-      const failure = accessFailure(profile, options);
+      const context = await getAuthContext();
+      const profile = context?.profile ?? null;
+      const failure = accessFailure(profile, options, context?.aal);
       if (failure) return NextResponse.json({ error: failure.message, code: failure.code }, { status: failure.status, headers: { "Cache-Control": "private, no-store" } });
       const response = await handler(request, profile!);
       response.headers.set("Cache-Control", "private, no-store");

@@ -1,5 +1,6 @@
 import Image from "next/image";
-import { Camera, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { Camera, ShieldCheck, Smartphone } from "lucide-react";
 import { updateProfileAction } from "@/app/actions/auth";
 import { Notice } from "@/components/feedback/notice";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -23,6 +24,11 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
     <div className="page-wrap narrow-page">
       <PageHeader eyebrow="ACCOUNT" title="PERSONAL PROFILE" description="Keep your contact and student details accurate for custody records." />
       <Notice error={query.error} message={query.message} />
+      <section className="profile-security" aria-labelledby="profile-security-title">
+        <ShieldCheck aria-hidden="true" />
+        <div><h2 id="profile-security-title">Two-factor authentication</h2><p>{profile.data_scope === "demo" ? "Shared demo accounts are exempt. Personal accounts require an authenticator code." : "Your password and authenticator code protect your account."}</p></div>
+        {profile.data_scope !== "demo" && <Link href="/two-factor?manage=1" className="button button-secondary"><Smartphone aria-hidden="true" />Manage authenticators</Link>}
+      </section>
       <section className="content-card profile-card">
         <div className="profile-summary">
           <div className="profile-photo">{photoUrl ? <Image src={photoUrl} alt="Profile photo" fill sizes="112px" unoptimized /> : <Camera aria-hidden="true" />}</div>

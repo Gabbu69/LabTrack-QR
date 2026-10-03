@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { createServer } from "node:net";
 import assert from "node:assert/strict";
 import pg from "pg";
+import { verifyFixtureRestore } from "./test-restore.mjs";
 
 // No environment-supplied database URL is accepted: destructive tests stay local.
 const port = await new Promise((resolve, reject) => {
@@ -15,8 +16,8 @@ const port = await new Promise((resolve, reject) => {
 const directory = await mkdtemp(join(tmpdir(), "labtrack-audit-db-"));
 const password = randomBytes(24).toString("hex");
 const database = new EmbeddedPostgres({ databaseDir: directory, port, user: "postgres", password,
-  persistent: true, initdbFlags: ["--encoding=UTF8"],
-  postgresFlags: ["-c", "listen_addresses=127.0.0.1"], onLog: () => {}, onError: () => {} });
+  persistent: true, initdbFlags: ["--encoding=UTF8", "-c", "shared_buffers=16MB", "-c", "max_connections=20"],
+  postgresFlags: ["-c", "listen_addresses=127.0.0.1", "-c", "shared_buffers=16MB", "-c", "max_connections=20"], onLog: () => {}, onError: () => {} });
 const connection = { host: "127.0.0.1", port, user: "postgres", password, database: "postgres" };
 let client;
 try {
@@ -40,6 +41,10 @@ try {
   console.log("PASS: complete/partial/damaged/missing/recovery/reset workflows and role isolation");
   await client.query(await readFile(new URL("../supabase/tests/audit.integration.sql", import.meta.url), "utf8"));
   console.log("PASS: temporary-password, disabled/pending, storage, metadata, pagination and aggregate regressions");
+  await client.query(await readFile(new URL("../supabase/tests/login-limit.integration.sql", import.meta.url), "utf8"));
+  console.log("PASS: login limit, cooldown, account isolation and server-only permissions");
+  await client.query(await readFile(new URL("../supabase/tests/mfa.integration.sql", import.meta.url), "utf8"));
+  console.log("PASS: MFA assurance, direct RPC/RLS/storage enforcement, demo isolation and role restrictions");
 
   // Committed fixtures are confined to this newly created disposable cluster.
   await client.query(`insert into auth.users (id,email,raw_user_meta_data,raw_app_meta_data) values
@@ -61,6 +66,18 @@ try {
   assert.deepEqual(attempts.sort(), ["conflict", "success"]);
   assert.equal((await client.query("select count(*)::integer as count from public.transaction_items where item_status='borrowed'")).rows[0].count, 1);
   console.log("PASS: simultaneous checkout creates exactly one open custody record");
+  const limitKey = randomBytes(32).toString("hex");
+  for (let attempt = 0; attempt < 4; attempt++) await client.query("select public.consume_login_attempt($1)", [limitKey]);
+  const limits = await Promise.all([0, 1].map(async () => {
+    const racer = new pg.Client(connection); await racer.connect();
+    try {
+      await racer.query("set role service_role");
+      return (await racer.query("select public.consume_login_attempt($1) as allowed", [limitKey])).rows[0].allowed;
+    } finally { await racer.end(); }
+  }));
+  assert.deepEqual(limits.sort(), [false, true]);
+  console.log("PASS: simultaneous login attempts cannot exceed the shared limit");
+  await verifyFixtureRestore(client, connection, directory);
 } finally {
   await client?.end(); await database.stop();
 }

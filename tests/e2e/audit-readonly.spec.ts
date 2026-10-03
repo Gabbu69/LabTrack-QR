@@ -46,5 +46,6 @@ for(const [role,email,paths] of [
  } else {await page.goto('/borrow');await expect(page).toHaveURL(/\/dashboard\?error=/);}
  await page.goto('/dashboard');await page.setViewportSize({width:1366,height:900});await page.screenshot({path:info.outputPath(`${role}-desktop.png`),fullPage:true});
  await page.setViewportSize({width:320,height:900});await page.screenshot({path:info.outputPath(`${role}-mobile.png`),fullPage:true});
- await page.getByRole('button',{name:'Log Out'}).click();await expect(page).toHaveURL(/\/login/);await page.goto('/tools');await expect(page).toHaveURL(/\/login/);
+ await page.getByRole('button',{name:'Open menu'}).click();
+ await page.getByRole('dialog',{name:'Navigation menu'}).getByRole('button',{name:'Log Out'}).click();await expect(page).toHaveURL(/\/login/);await page.goto('/tools');await expect(page).toHaveURL(/\/login/);
 });

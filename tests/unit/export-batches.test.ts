@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 const state = vi.hoisted(() => ({ mutate: false, failAt: -1, offsets: [] as number[], transactions: [] as Record<string, unknown>[], items: [] as Record<string, unknown>[] }));
-vi.mock("@/lib/auth", () => ({ getProfile: async () => ({ id: "actor", role: "custodian", status: "active", must_change_password: false }) }));
+vi.mock("@/lib/auth", () => ({ getAuthContext: async () => ({ profile: { id: "actor", role: "custodian", status: "active", must_change_password: false, data_scope: "operational" }, aal: "aal2" }) }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ from: (table: string) => {
   let ids: string[] | undefined; let cursor = "";
   const query = { select: () => query, order: () => query, lte: () => query, gt: (_field: string, value: string) => { cursor = value; return query; }, in: (_field: string, values: string[]) => { ids = values; return query; }, range: async (from: number, to: number) => {

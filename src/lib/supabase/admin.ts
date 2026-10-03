@@ -1,7 +1,8 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
-import { publicEnv, requireSupabaseEnv, requireSupabaseSecret } from "@/lib/env";
+import { publicEnv, requireSupabaseEnv } from "@/lib/env";
+import { requireSupabaseSecret } from "@/lib/server-env";
 
 export function createAdminClient() {
   requireSupabaseEnv();
