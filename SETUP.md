@@ -2,7 +2,7 @@
 
 Use Node **24.x**. Daily users need only the hosted website and their prepared account.
 
-On this Windows laptop, use `powershell -ExecutionPolicy Bypass -File scripts/windows-workspace.ps1 -Mode dev` from the source checkout. The helper copies current source and the private local environment to the separate D: workspace, uses Node 24 and D: cache/temp folders, and installs from the lockfile if it changed. Restart the helper after editing source so the mirror receives changes. Use `-Mode verify` for local checks. This avoids building on the nearly full C: drive; it does not repair or delete the original C: dependency folder.
+On this Windows laptop, use `powershell -ExecutionPolicy Bypass -File scripts/windows-workspace.ps1 -Mode dev` from the source checkout. The helper copies current source and the private local environment to the separate D: workspace, uses Node 24 and D: cache/temp folders, and installs from the lockfile if it changed. Restart the helper after editing source so the mirror receives changes. Use `-Mode verify` for local checks or `-Mode sync` to refresh the mirror without starting the app. Edit source in the original checkout: obsolete files in the mirror's source directories are removed, including committed deletions. The helper rejects redirected destination paths. This avoids building on the nearly full C: drive; it does not repair or delete the original C: dependency folder.
 
 ## Existing backend
 
