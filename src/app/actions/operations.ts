@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCustodian, requireProfile } from "@/lib/auth";
 import { normalizeAssetPrefix } from "@/lib/asset-code";
 import { toolBatchSchema } from "@/lib/validation";
+import { isSharedDemoIdentity, SHARED_DEMO_ACCOUNT_NOTICE } from "@/lib/demo-identities";
 
 function value(formData: FormData, key: string) { return String(formData.get(key) ?? ""); }
 function go(path: string, key: "error" | "message", message: string): never { redirect(`${path}?${key}=${encodeURIComponent(message)}`); }
@@ -47,6 +48,9 @@ export async function setProfileStatusAction(formData: FormData) {
   if (!parsed.success) go("/users", "error", "Invalid account update.");
   if (parsed.data.profileId === actor.id && parsed.data.status !== "active") go("/users", "error", "You cannot deactivate your current account.");
   const supabase = await createClient();
+  const { data: target } = await supabase.from("profiles").select("email,data_scope").eq("id", parsed.data.profileId).maybeSingle();
+  if (!target || target.data_scope !== actor.data_scope) go("/users", "error", "Account not found in your scope.");
+  if (isSharedDemoIdentity(target) && parsed.data.status !== "active") go("/users", "error", SHARED_DEMO_ACCOUNT_NOTICE);
   const { error } = await supabase.rpc("set_profile_status", { p_profile_id: parsed.data.profileId, p_status: parsed.data.status });
   if (error) go("/users", "error", "The change could not be completed. Check the details, reload the record, and try again.");
   revalidatePath("/users");
@@ -72,8 +76,9 @@ export async function resetPasswordAction(formData: FormData) {
   const parsed = z.object({ profileId: z.uuid(), temporaryPassword: z.string().min(10).max(128) }).safeParse({ profileId: value(formData, "profile_id"), temporaryPassword: value(formData, "temporary_password") });
   if (!parsed.success) go("/users", "error", "Temporary passwords must be at least 10 characters.");
   const supabase = await createClient();
-  const { data: target } = await supabase.from("profiles").select("id,data_scope,updated_at").eq("id", parsed.data.profileId).maybeSingle();
+  const { data: target } = await supabase.from("profiles").select("id,email,data_scope,updated_at").eq("id", parsed.data.profileId).maybeSingle();
   if (!target || target.data_scope !== actor.data_scope) go("/users", "error", "Account not found in your scope.");
+  if (isSharedDemoIdentity(target)) go("/users", "error", SHARED_DEMO_ACCOUNT_NOTICE);
   const admin = createAdminClient();
   const result = await performPasswordUpdate(target, () => admin.auth.admin.updateUserById(parsed.data.profileId, { password: parsed.data.temporaryPassword }), true);
   if (!result.ok) go("/users", "error", result.message);

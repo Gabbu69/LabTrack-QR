@@ -55,7 +55,9 @@ test.describe("authenticated release workflows", () => {
     await expect(page.getByText(/1 outstanding/)).toBeVisible();
     await page.getByRole("textbox", { name: /USB scanner or typed asset code/i }).fill("DMM-002");
     await page.getByRole("button", { name: "Use code" }).click();
+    const returnRequest = page.waitForRequest(request => request.url().endsWith("/api/return") && request.method() === "POST");
     await page.getByRole("button", { name: "Confirm return (1)" }).click();
+    expect((await returnRequest).postDataJSON().returnedItems[0].itemId).toMatch(/^[0-9a-f-]{36}$/i);
     await expect(page.getByText("Complete return: 1 tools accepted.")).toBeVisible();
 
     await page.goto("/history");
@@ -67,6 +69,74 @@ test.describe("authenticated release workflows", () => {
     expect(path).not.toBeNull();
     const csv = await readFile(path!, "utf8");
     expect(csv).toContain("Transaction ID,Borrower,Student ID");
+  });
+
+  test("stale return screen preserves a later loan, partial custody, and missing recovery", async ({ page }) => {
+    test.setTimeout(120_000);
+    await login(page, demoCustodianEmail, demoPassword!);
+    await resetDemo(page);
+    const headers = { origin: new URL(page.url()).origin };
+    const studentResponse = await page.request.post("/api/scan/resolve", { headers, data: { value: "DEMO-2026-04", kind: "student" } });
+    expect(studentResponse.ok()).toBe(true);
+    const student = await studentResponse.json();
+    const tools = [] as { token: string }[];
+    for (const value of ["DMM-002", "SDR-002"]) {
+      const toolResponse = await page.request.post("/api/scan/resolve", { headers, data: { value, kind: "tool" } });
+      expect(toolResponse.ok()).toBe(true); tools.push(await toolResponse.json());
+    }
+    const checkout = await page.request.post("/api/borrow", { headers, data: { borrowerToken: student.token, toolTokens: tools.map(tool => tool.token) } });
+    expect(checkout.ok()).toBe(true);
+    const custodyResponse = await page.request.get(`/api/custody?token=${student.token}`);
+    expect(custodyResponse.ok()).toBe(true);
+    const custody = await custodyResponse.json();
+    const reviewed = custody.items.find((item: { toolToken: string }) => item.toolToken === tools[0].token);
+    expect(reviewed?.itemId).toBeTruthy();
+
+    await page.goto("/return");
+    await page.getByRole("textbox", { name: /USB scanner or typed Student ID/i }).fill("DEMO-2026-04");
+    await page.getByRole("button", { name: "Use code" }).click();
+    await expect(page.getByText(/2 outstanding/)).toBeVisible();
+    await page.getByRole("textbox", { name: /USB scanner or typed asset code/i }).fill("DMM-002");
+    await page.getByRole("button", { name: "Use code" }).click();
+    const returned = await page.request.post("/api/return", { headers, data: { borrowerToken: student.token, returnedItems: [{ itemId: reviewed.itemId, toolToken: reviewed.toolToken, condition: "good", note: "Second workstation returned it", unavailable: false }] } });
+    expect(returned.ok()).toBe(true);
+    const reloan = await page.request.post("/api/borrow", { headers, data: { borrowerToken: student.token, toolTokens: [tools[0].token] } });
+    expect(reloan.ok()).toBe(true);
+    const staleResponsePromise = page.waitForResponse(response => response.url().endsWith("/api/return") && response.request().method() === "POST");
+    await page.getByRole("button", { name: "Confirm return (1)" }).click();
+    expect((await staleResponsePromise).status()).toBe(409);
+    await expect(page.getByRole("alert")).toContainText("Reload the borrower's custody");
+    const afterStale = await (await page.request.get(`/api/custody?token=${student.token}`)).json();
+    const current = afterStale.items.find((item: { toolToken: string }) => item.toolToken === tools[0].token);
+    expect(current?.itemId).toBeTruthy(); expect(current.itemId).not.toBe(reviewed.itemId);
+
+    await page.getByRole("button", { name: "Change", exact: true }).click();
+    await page.getByRole("textbox", { name: /USB scanner or typed Student ID/i }).fill("DEMO-2026-04");
+    await page.getByRole("button", { name: "Use code" }).click();
+    await page.getByRole("textbox", { name: /USB scanner or typed asset code/i }).fill("DMM-002");
+    await page.getByRole("button", { name: "Use code" }).click();
+    await page.getByRole("button", { name: "Confirm return (1)" }).click();
+    await expect(page.getByText("Partial return: 1 accepted; 1 remain outstanding.")).toBeVisible();
+
+    await page.getByRole("textbox", { name: /USB scanner or typed Student ID/i }).fill("DEMO-2026-04");
+    await page.getByRole("button", { name: "Use code" }).click();
+    await page.getByText("Explicitly mark missing", { exact: true }).click();
+    const missingChoice = page.locator("label.missing-choice").filter({ hasText: "SDR-002" }).getByRole("checkbox");
+    await missingChoice.check();
+    await page.getByLabel("Missing item note").fill("Tool not found at this workstation");
+    await page.getByRole("button", { name: "Mark selected missing" }).click();
+    await expect(page.getByText(/Selected items were explicitly marked missing/)).toBeVisible();
+    await expect(missingChoice).toBeDisabled();
+    await page.getByRole("textbox", { name: /USB scanner or typed asset code/i }).fill("SDR-002");
+    await page.getByRole("button", { name: "Use code" }).click();
+    await page.getByLabel("Condition", { exact: true }).selectOption("damaged");
+    await expect(page.getByLabel("Keep unavailable")).toBeChecked();
+    await page.getByRole("button", { name: "Confirm return (1)" }).click();
+    await expect(page.getByText("Complete return: 1 tools accepted.")).toBeVisible();
+    const finalCustody = await (await page.request.get(`/api/custody?token=${student.token}`)).json();
+    expect(finalCustody.items).toEqual([]);
+    const damaged = await (await page.request.post("/api/scan/resolve", { headers, data: { value: "SDR-002", kind: "tool" } })).json();
+    expect(damaged).toMatchObject({ status: "unavailable", condition: "damaged" });
   });
 
   test("temporary-password staff account is forced to change its password", async ({ page }) => {

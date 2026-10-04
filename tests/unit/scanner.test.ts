@@ -24,3 +24,14 @@ it('ignores scans while processing or disabled and after the camera unmounts', a
  await act(async()=>{scan.callback?.({getText:()=> 'A-003'});}); expect(onScan).toHaveBeenCalledTimes(1);
  const delayed=scan.callback; view.unmount(); delayed?.({getText:()=> 'A-004'}); expect(onScan).toHaveBeenCalledTimes(1); expect(scan.stop).toHaveBeenCalledOnce();
 });
+
+it('advertises only supported raster image formats and rejects an SVG upload before decoding', async () => {
+ const onScan=vi.fn();
+ render(createElement(QrScanner,{expected:'student',onScan}));
+ const upload=screen.getByLabelText('Upload QR image');
+ expect(upload.getAttribute('accept')).toBe('image/jpeg,image/png,image/webp');
+ expect(screen.getByText('JPEG, PNG, or WebP, up to 5 MB. Use a photo or screenshot of the QR code.')).toBeTruthy();
+ await act(async()=>{fireEvent.change(upload,{target:{files:[new File(['<svg/>'],'qr.svg',{type:'image/svg+xml'})]}});});
+ expect(screen.getByRole('alert').textContent).toContain('Choose a JPEG, PNG, or WebP QR image no larger than 5 MB.');
+ expect(onScan).not.toHaveBeenCalled();
+});

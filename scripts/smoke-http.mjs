@@ -20,7 +20,7 @@ for(const [role,email] of [['custodian','custodian.demo@labtrackqr2026.com'],['i
  assert.match(sessionHeader,/HttpOnly/i); assert.match(sessionHeader,/SameSite=lax/i);
  if(new URL(base).protocol==='https:') assert.match(sessionHeader,/Secure/i);
  const cookie=[...cookies].map(([k,v])=>`${k}=${encodeURIComponent(v)}`).join('; ');
- const dashboard=await request('GET','/dashboard',cookie);assert.equal(dashboard.status,200,`${role} dashboard`);const html=await dashboard.text();assert(!html.includes('We could not load this page'),`${role} dashboard fallback`);
+ const dashboard=await request('GET','/dashboard',cookie);assert.equal(dashboard.status,200,`${role} dashboard`);const html=await dashboard.text();assert(!html.includes('This page could not load'),`${role} dashboard fallback`);assert(html.includes(role==='student'?'Welcome, ':role==='custodian'?'Tool crib dashboard':'Laboratory status'),`${role}: expected dashboard content`);
  for(const [method,path] of routes.filter(([method,path])=>method==='POST' && path!=='/api/demo/reset')){const r=await request(method,path,cookie);assert.equal(r.status,role==='custodian'?400:403,`${role} ${path}`);assert.match(r.headers.get('content-type'),/application\/json/);}
  if(role!=='custodian'){const reset=await request('POST','/api/demo/reset',cookie);assert.equal(reset.status,403);}
  if(role==='custodian'){

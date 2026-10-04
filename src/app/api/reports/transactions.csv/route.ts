@@ -25,7 +25,7 @@ export const GET = apiRoute({ active: true }, async (request) => {
     items.sort((a, b) => (map.get(b.transaction_id)?.borrowed_at ?? "").localeCompare(map.get(a.transaction_id)?.borrowed_at ?? "") || a.asset_code_snapshot.localeCompare(b.asset_code_snapshot));
     const rows = items.map((item) => {
       const tx = map.get(item.transaction_id)!;
-      return [tx.id,tx.borrower_name_snapshot,tx.borrower_student_id_snapshot,tx.borrower_year_section_snapshot,tx.borrower_group_snapshot,tx.borrowed_at,tx.completed_at,tx.status,item.asset_code_snapshot,item.tool_name_snapshot,item.item_status,item.issue_condition,item.return_condition,item.return_note,item.missing_at,item.missing_note];
+      return [tx.id,tx.borrower_name_snapshot,tx.borrower_student_id_snapshot,tx.borrower_year_section_snapshot,tx.borrower_group_snapshot,tx.borrowed_at,item.returned_at,tx.status,item.asset_code_snapshot,item.tool_name_snapshot,item.item_status,item.issue_condition,item.return_condition,item.return_note,item.missing_at,item.missing_note];
     });
     if (rows.length) chunks.push(toCsv([], rows).slice(2));
     if (data.length < 250) break;

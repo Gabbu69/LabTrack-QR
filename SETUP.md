@@ -74,6 +74,12 @@ GitHub Actions runs lint, TypeScript, unit tests, isolated PostgreSQL tests, the
 
 History now offers **Print A4 report** with the current filters and all matching records. Students receive only their own permitted records. The guide links to a blank printable thesis evaluation worksheet; methodology and participant results must be approved and collected separately. See `THESIS_EVALUATION.md`, `BACKUP_HANDOFF.md` and `DEPENDENCY_AUDIT.md` for evaluation, recovery and the narrowly documented development dependency exception. The isolated database test also restores a checksummed fictional logical backup into a second local database.
 
+## October 4 readiness migration compatibility
+
+The readiness application requires both `20261003010000_harden_return_reconciliation.sql` and `20261003020000_reset_successful_login_attempts.sql`. Inspect migration history and take a verified private backup before applying them. The first migration rejects old token-only return selections; the second supplies the service-role-only successful-login counter reset. A Preview of the new application cannot complete login until that reset RPC exists.
+
+Prepare the compatible Preview build, then coordinate the reviewed migrations and verification before production promotion. Existing old return screens must reload after release. Preserve the database guards and roll back only to a build that sends exact item IDs and supports the installed limiter RPC; do not restore an unsafe token-only return function as a workaround. Complete `CLIENT_ACCEPTANCE.md` before entering real pilot records.
+
 ## Account administration and recovery
 
 Custodians approve students and create/reset staff accounts through User Management. For operational accounts, temporary credentials require authenticator verification followed by a private password before operational APIs, RPCs, inventory or photo access become available. Demo accounts keep the private-password requirement without personal MFA. Remove `BOOTSTRAP_*` variables after one-time staff provisioning. Do not bootstrap or seed again on an established project.

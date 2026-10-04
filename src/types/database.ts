@@ -282,6 +282,10 @@ export type Database = {
         Args: { p_key: string }
         Returns: boolean
       }
+      reset_login_attempts: {
+        Args: { p_key: string }
+        Returns: undefined
+      }
       dashboard_summary: { Args: Record<PropertyKey, never>; Returns: Json }
       borrow_tools: {
         Args: { p_borrower_token: string; p_tool_tokens: string[] }
