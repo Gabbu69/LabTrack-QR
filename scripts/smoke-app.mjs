@@ -47,6 +47,7 @@ let custodian;
 let borrower;
 let checkedOut = false;
 let tool;
+let loanItem;
 try {
   if (server) {
     let logs = "";
@@ -80,8 +81,9 @@ try {
   console.log("PASS custodian, instructor, and student login/session/dashboard");
 
   const blocked = await request("/api/borrow", cookies[1], {});
-  assert.equal(blocked.status, 307);
-  assert.ok(blocked.headers.get("location")?.includes("/dashboard?error="));
+  assert.equal(blocked.status, 403);
+  assert.match(blocked.headers.get("content-type"), /application\/json/);
+  assert.equal((await blocked.json()).code, "ACCESS_DENIED");
   console.log("PASS instructor cannot check out tools");
 
   borrower = await json("/api/scan/resolve", custodian, { kind: "student", value: "DEMO-2026-01" });
@@ -93,11 +95,12 @@ try {
   assert.ok(tx.transactionId);
   await json("/api/borrow", custodian, checkout, 409);
   const custody = await json(`/api/custody?token=${borrower.token}`, custodian);
-  assert.ok(custody.items.some((item) => item.toolToken === tool.token));
+  loanItem = custody.items.find((item) => item.toolToken === tool.token && item.transactionId === tx.transactionId);
+  assert.ok(loanItem?.itemId);
   console.log("PASS QR resolution, checkout, duplicate-checkout rejection, and custody");
 
   const returned = await json("/api/return", custodian, { borrowerToken: borrower.token,
-    returnedItems: [{ toolToken: tool.token, condition: tool.condition, note: "Automated demo verification", unavailable: false }] });
+    returnedItems: [{ itemId: loanItem.itemId, toolToken: tool.token, condition: tool.condition, note: "Automated demo verification", unavailable: false }] });
   checkedOut = false;
   assert.equal(returned.returnedCount, 1);
   const after = await json("/api/scan/resolve", custodian, { kind: "tool", value: "DMM-002" });
@@ -109,8 +112,15 @@ try {
   console.log("Production HTTP smoke checks passed.");
 } finally {
   try {
-    if (checkedOut) await json("/api/return", custodian, { borrowerToken: borrower.token,
-      returnedItems: [{ toolToken: tool.token, condition: tool.condition, note: "Smoke-test cleanup", unavailable: false }] });
+    if (checkedOut) {
+      if (!loanItem) {
+        const custody = await json(`/api/custody?token=${borrower.token}`, custodian);
+        loanItem = custody.items.find((item) => item.toolToken === tool.token);
+      }
+      assert.ok(loanItem?.itemId, "Cleanup requires the exact outstanding custody item");
+      await json("/api/return", custodian, { borrowerToken: borrower.token,
+        returnedItems: [{ itemId: loanItem.itemId, toolToken: tool.token, condition: tool.condition, note: "Smoke-test cleanup", unavailable: false }] });
+    }
   } finally {
     if (server && server.exitCode === null) {
       const exited = once(server, "exit"); server.kill("SIGTERM"); await exited;

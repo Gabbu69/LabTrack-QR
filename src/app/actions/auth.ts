@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { consumeLoginAttempt } from "@/lib/login-limit";
+import { clearLoginAttempts, consumeLoginAttempt } from "@/lib/login-limit";
+import { isSharedDemoIdentity, SHARED_DEMO_ACCOUNT_NOTICE } from "@/lib/demo-identities";
 import { authCookieOptions, IDLE_SECONDS, SESSION_COOKIE, signSession } from "@/lib/session-policy";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -30,6 +31,8 @@ export async function loginAction(formData: FormData) {
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error?.code === "email_not_confirmed") go("/login", "error", "Confirm your email using the link in your inbox, then sign in again.");
   if (error || !data.user) go("/login", "error", "Email or password is incorrect.");
+  try { await clearLoginAttempts(parsed.data.email); }
+  catch { await supabase.auth.signOut(); go("/login", "error", "Sign-in is temporarily unavailable. Please try again later."); }
   const { data: profile } = await supabase.from("profiles").select("status,must_change_password,data_scope").eq("id", data.user.id).maybeSingle();
   if (!profile) { await supabase.auth.signOut(); go("/login", "error", "Your profile is not ready. Ask the custodian for help."); }
   if (profile.status === "disabled") { await supabase.auth.signOut(); go("/login", "error", "This account has been disabled. Contact the custodian."); }
@@ -65,6 +68,7 @@ export async function registerAction(formData: FormData) {
 
 export async function changePasswordAction(formData: FormData) {
   const profile = await requireProfile(undefined, { allowPasswordChange: true });
+  if (isSharedDemoIdentity(profile)) go("/change-password", "error", SHARED_DEMO_ACCOUNT_NOTICE);
   const parsed = passwordSchema.safeParse({ password: value(formData, "password"), confirmation: value(formData, "confirmation") });
   if (!parsed.success) go("/change-password", "error", parsed.error.issues[0]?.message ?? "Check the new password.");
   const supabase = await createClient();

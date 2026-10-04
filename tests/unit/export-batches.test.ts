@@ -37,3 +37,25 @@ it("does not skip an unexported row when an earlier matching transaction changes
  const response = await GET(new NextRequest("https://labtrack.test/api/reports/transactions.csv"));
  expect(response.status).toBe(200); expect((await response.text()).split("\r\n")).toHaveLength(6313);
 });
+
+it("exports each partial-return item's own return date and leaves outstanding items blank", async () => {
+  state.transactions = [{ id: "tx-partial", borrowed_at: "2026-10-01T00:00:00Z", completed_at: null, status: "partial" }];
+  state.items = [
+    { id: "first", transaction_id: "tx-partial", asset_code_snapshot: "ASSET-1", item_status: "returned", returned_at: "2026-10-02T08:00:00Z" },
+    { id: "second", transaction_id: "tx-partial", asset_code_snapshot: "ASSET-2", item_status: "borrowed", returned_at: null },
+  ];
+  const response = await GET(new NextRequest("https://labtrack.test/api/reports/transactions.csv"));
+  const rows = (await response.text()).split("\r\n").slice(1).map((row) => row.split(","));
+  expect(rows.map((row) => [row[8], row[6]])).toEqual([["ASSET-1", "2026-10-02T08:00:00Z"], ["ASSET-2", ""]]);
+});
+
+it("preserves staggered item return dates after the entire transaction is completed", async () => {
+  state.transactions = [{ id: "tx-complete", borrowed_at: "2026-10-01T00:00:00Z", completed_at: "2026-10-03T09:00:00Z", status: "returned" }];
+  state.items = [
+    { id: "first", transaction_id: "tx-complete", asset_code_snapshot: "ASSET-1", item_status: "returned", returned_at: "2026-10-02T08:00:00Z" },
+    { id: "second", transaction_id: "tx-complete", asset_code_snapshot: "ASSET-2", item_status: "returned", returned_at: "2026-10-03T09:00:00Z" },
+  ];
+  const response = await GET(new NextRequest("https://labtrack.test/api/reports/transactions.csv"));
+  const rows = (await response.text()).split("\r\n").slice(1).map((row) => row.split(","));
+  expect(rows.map((row) => [row[8], row[6]])).toEqual([["ASSET-1", "2026-10-02T08:00:00Z"], ["ASSET-2", "2026-10-03T09:00:00Z"]]);
+});

@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   context: null as Context | null,
   requireProfile: vi.fn(),
   consumeAttempt: vi.fn(),
+  clearVerification: vi.fn(),
   createClient: vi.fn(),
   listFactors: vi.fn(),
   enroll: vi.fn(),
@@ -31,7 +32,7 @@ vi.mock("@/lib/auth", () => ({
   getAuthContext: async () => mocks.context,
   requireProfile: mocks.requireProfile,
 }));
-vi.mock("@/lib/login-limit", () => ({ consumeMfaAttempt: mocks.consumeAttempt }));
+vi.mock("@/lib/login-limit", () => ({ consumeMfaAttempt: mocks.consumeAttempt, clearMfaVerificationAttempts: mocks.clearVerification }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ set: mocks.setCookie, delete: mocks.deleteCookie }) }));
 vi.mock("next/navigation", () => ({ redirect: (path: string): never => { throw new Error(`REDIRECT:${path}`); } }));
@@ -76,6 +77,7 @@ beforeEach(() => {
   };
   mocks.requireProfile.mockResolvedValue(mocks.context.profile);
   mocks.consumeAttempt.mockResolvedValue(true);
+  mocks.clearVerification.mockReset().mockResolvedValue(undefined);
   mocks.createClient.mockResolvedValue({ auth: {
     getClaims: mocks.claims, refreshSession: mocks.refresh,
     mfa: { listFactors: mocks.listFactors, enroll: mocks.enroll, unenroll: mocks.unenroll, challengeAndVerify: mocks.verify },
@@ -137,6 +139,7 @@ describe("MFA enrollment", () => {
     expect(mocks.enroll).toHaveBeenCalledWith({ factorType: "totp", issuer: "LabTrack QR", friendlyName: "My phone" });
     expect(result).toEqual({ enrollment: { factorId: secondId, uri: "otpauth://totp/Test?secret=TESTONLY", secret: "TESTONLY" } });
     expect(mocks.setCookie).not.toHaveBeenCalled();
+    expect(mocks.clearVerification).not.toHaveBeenCalled();
   });
 
   it("requires existing MFA before adding another authenticator", async () => {
@@ -206,6 +209,7 @@ describe("MFA code verification", () => {
   it("uses fresh provider claims, upgrades the cookie, and preserves the absolute start", async () => {
     await expect(verifyMfaAction({}, form({ factor_id: firstId, code: " 012345 " }))).rejects.toThrow("REDIRECT:/dashboard");
     expect(mocks.consumeAttempt).toHaveBeenCalledWith(userId, "verify");
+    expect(mocks.clearVerification).toHaveBeenCalledExactlyOnceWith(userId);
     expect(mocks.verify).toHaveBeenCalledWith({ factorId: firstId, code: "012345" });
     expect(mocks.claims).toHaveBeenCalledOnce();
     expect(mocks.signSession).toHaveBeenCalledWith({ user: userId, session: "verified-session", started: now - 60, seen: now });
@@ -232,6 +236,7 @@ describe("MFA code verification", () => {
     expect((await verifyMfaAction({}, form({ factor_id: firstId, code: "123456" }))).error).toContain("secure session");
     expect(mocks.setCookie).not.toHaveBeenCalled();
     expect(mocks.revalidate).not.toHaveBeenCalled();
+    expect(mocks.clearVerification).not.toHaveBeenCalled();
   });
 
   it("does not extend an expired absolute session", async () => {
@@ -249,6 +254,26 @@ describe("MFA code verification", () => {
     mocks.context!.aal = "aal2";
     factors([first, pending]);
     await expect(verifyMfaAction({}, form({ factor_id: secondId, code: "123456", manage: "1" }))).rejects.toThrow("REDIRECT:/two-factor?manage=1");
+  });
+  it("resets accepted codes so six successful verifications do not exhaust the window", async () => {
+    let attempts = 0;
+    mocks.consumeAttempt.mockImplementation(async () => ++attempts <= 5);
+    mocks.clearVerification.mockImplementation(async () => { attempts = 0; });
+    for (let index = 0; index < 6; index++) await expect(verifyMfaAction({}, form({ factor_id: firstId, code: "123456" }))).rejects.toThrow("REDIRECT:/dashboard");
+    expect(mocks.clearVerification).toHaveBeenCalledTimes(6);
+  });
+  it("retains the cooldown after five rejected codes", async () => {
+    let attempts = 0;
+    mocks.consumeAttempt.mockImplementation(async () => ++attempts <= 5);
+    mocks.verify.mockResolvedValue({ error: {} });
+    for (let index = 0; index < 5; index++) expect((await verifyMfaAction({}, form({ factor_id: firstId, code: "123456" }))).error).toContain("Code was not accepted");
+    expect((await verifyMfaAction({}, form({ factor_id: firstId, code: "123456" }))).error).toContain("15 minutes");
+    expect(mocks.verify).toHaveBeenCalledTimes(5); expect(mocks.clearVerification).not.toHaveBeenCalled();
+  });
+  it("does not persist the upgraded app cookie if verification reset is unavailable", async () => {
+    mocks.clearVerification.mockRejectedValueOnce(new Error("private database detail"));
+    expect((await verifyMfaAction({}, form({ factor_id: firstId, code: "123456" }))).error).toContain("temporarily unavailable");
+    expect(mocks.setCookie).not.toHaveBeenCalled();
   });
 });
 
@@ -284,6 +309,7 @@ describe("MFA device removal", () => {
     expect(mocks.refresh).toHaveBeenCalledOnce();
     expect(mocks.claims).toHaveBeenCalledOnce();
     expect(mocks.setCookie).toHaveBeenCalledOnce();
+    expect(mocks.clearVerification).not.toHaveBeenCalled();
   });
 
   it.each(["error", "aal1", "throw"])("clears the app session if refresh cannot establish AAL2 after removal: %s", async (mode) => {

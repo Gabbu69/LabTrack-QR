@@ -1,11 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-const accounts = {
-  student: "jordan.demo@labtrackqr2026.com",
-  instructor: "instructor.demo@labtrackqr2026.com",
-  custodian: "custodian.demo@labtrackqr2026.com",
-} as const;
+import { DEMO_GUIDE_ACCOUNTS as accounts } from "@/lib/demo-identities";
 
 // Only these explicitly public demo accounts may be offered by the guide.
 export async function getDemoAccess(role: unknown) {

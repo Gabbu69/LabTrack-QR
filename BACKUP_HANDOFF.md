@@ -42,4 +42,12 @@ Use a disposable project or local target owned by the deployment owner. Never pr
 
 Encourage real users to verify a backup authenticator before replacing a phone. A password reset does not remove MFA. When all factors are lost, the trusted owner verifies identity through the laboratory's approved process, revokes affected sessions and recovers only that user's factors through Supabase administration. Require new enrollment. Keep the documented owner access available during rollout.
 
+## Shared demonstration account recovery
+
+The seven seeded demonstration identities are shared evaluation accounts. App controls prevent their password change, reset and deactivation; new disposable demonstration staff remain able to replace temporary passwords. These controls prevent accidental disruption within LabTrack. Publicly shared Auth credentials can still be changed through provider endpoints, so check the three advertised sign-ins before evaluation.
+
+If sign-in fails, the trusted owner verifies that the affected identity has the expected email, role and database demo scope, then resets only that Auth account's password to the privately configured demonstration password and clears its temporary-password restriction through the approved trusted procedure. Revoke affected sessions as needed and retest the guide. Do not seed/reset inventory as a credential repair, relabel an operational account as demo, or expose secrets in the handoff report.
+
+Complete [CLIENT_ACCEPTANCE.md](./CLIENT_ACCEPTANCE.md) with named owner/alternate access and the actual recovery evidence before operational pilot entry.
+
 References: [Supabase backups](https://supabase.com/docs/guides/platform/backups), [restore to a new project](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore), [MFA](https://supabase.com/docs/guides/auth/auth-mfa).

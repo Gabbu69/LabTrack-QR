@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Camera, ShieldCheck, Smartphone } from "lucide-react";
+import { Camera, KeyRound, ShieldCheck, Smartphone } from "lucide-react";
 import { updateProfileAction } from "@/app/actions/auth";
 import { Notice } from "@/components/feedback/notice";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { isSharedDemoIdentity, SHARED_DEMO_ACCOUNT_NOTICE } from "@/lib/demo-identities";
 
 export const metadata = { title: "Profile" };
 
@@ -24,6 +25,11 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
     <div className="page-wrap narrow-page">
       <PageHeader eyebrow="ACCOUNT" title="PERSONAL PROFILE" description="Keep your contact and student details accurate for custody records." />
       <Notice error={query.error} message={query.message} />
+      <section className="profile-security" aria-labelledby="profile-password-title">
+        <KeyRound aria-hidden="true" />
+        <div><h2 id="profile-password-title">Account password</h2><p>{isSharedDemoIdentity(profile) ? SHARED_DEMO_ACCOUNT_NOTICE : "Use a private password you do not share with others."}</p></div>
+        {!isSharedDemoIdentity(profile) && <Link href="/change-password" className="button button-secondary">Change password</Link>}
+      </section>
       <section className="profile-security" aria-labelledby="profile-security-title">
         <ShieldCheck aria-hidden="true" />
         <div><h2 id="profile-security-title">Two-factor authentication</h2><p>{profile.data_scope === "demo" ? "Shared demo accounts are exempt. Personal accounts require an authenticator code." : "Your password and authenticator code protect your account."}</p></div>

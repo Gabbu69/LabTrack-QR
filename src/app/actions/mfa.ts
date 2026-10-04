@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getAuthContext, requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { consumeMfaAttempt } from "@/lib/login-limit";
+import { clearMfaVerificationAttempts, consumeMfaAttempt } from "@/lib/login-limit";
 import { mfaCodeSchema, mfaNameSchema } from "@/lib/validation";
 import type { MfaActionState } from "@/lib/mfa";
 import { authCookieOptions, IDLE_SECONDS, MAX_SESSION_SECONDS, SESSION_COOKIE, signSession } from "@/lib/session-policy";
@@ -27,13 +27,14 @@ async function limit(userId: string, purpose: "verify" | "manage"): Promise<MfaA
   return null;
 }
 
-async function persistVerifiedSession(supabase: Awaited<ReturnType<typeof createClient>>, context: NonNullable<Awaited<ReturnType<typeof getAuthContext>>>) {
+async function persistVerifiedSession(supabase: Awaited<ReturnType<typeof createClient>>, context: NonNullable<Awaited<ReturnType<typeof getAuthContext>>>, clearVerification = false) {
   // Verification changes the provider token. Do not reuse the cached AAL1 identity.
   const { data, error } = await supabase.auth.getClaims();
   const claims = data?.claims;
   const now = Math.floor(Date.now() / 1000);
   const remaining = MAX_SESSION_SECONDS - (now - context.session.started);
   if (error || claims?.sub !== context.profile.id || claims?.aal !== "aal2" || typeof claims.session_id !== "string" || remaining <= 0) return false;
+  if (clearVerification) await clearMfaVerificationAttempts(context.profile.id);
   (await cookies()).set(SESSION_COOKIE, signSession({ user: context.profile.id, session: claims.session_id, started: context.session.started, seen: now }), {
     ...authCookieOptions, maxAge: Math.min(IDLE_SECONDS, remaining),
   });
@@ -82,7 +83,7 @@ export async function verifyMfaAction(_previous: MfaActionState, form: FormData)
     }
     const { error: verificationError } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code: parsed.data.code });
     if (verificationError) return { error: "Code was not accepted. Use the current code and try again." };
-    if (!await persistVerifiedSession(supabase, context)) return { error: "Verification could not establish a secure session. Sign out and try again." };
+    if (!await persistVerifiedSession(supabase, context, true)) return { error: "Verification could not establish a secure session. Sign out and try again." };
   } catch { return { error: "Authenticator verification is temporarily unavailable. Try again later." }; }
   revalidatePath("/", "layout");
   redirect(context.profile.must_change_password ? "/change-password" : value(form, "manage") === "1" ? "/two-factor?manage=1&message=Authenticator%20added." : "/dashboard");

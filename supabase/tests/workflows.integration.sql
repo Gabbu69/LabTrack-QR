@@ -12,6 +12,14 @@ begin
 end;
 $$;
 
+-- Build the same exact custody selection emitted by the return screen.
+create function pg_temp.return_item(tx_id uuid, code text, p_condition text default 'good', p_note text default '', p_unavailable boolean default false)
+returns jsonb language sql as $$
+  select jsonb_build_object('item_id', i.id, 'tool_token', t.qr_token, 'condition', p_condition, 'note', p_note, 'unavailable', p_unavailable)
+  from public.transaction_items i join public.tools t on t.id = i.tool_id
+  where i.transaction_id = tx_id and i.asset_code_snapshot = code;
+$$;
+
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_user_meta_data, raw_app_meta_data)
 values
   ('01000000-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'workflow-custodian@test.invalid', crypt('password', gen_salt('bf')), now(), '{"full_name":"Workflow Custodian"}', '{"labtrack_staff_role":"custodian","labtrack_data_scope":"operational"}'),
@@ -59,6 +67,8 @@ declare
   first_tx uuid;
   second_tx uuid;
   third_tx uuid;
+  previous_item jsonb;
+  current_item jsonb;
   missing_time timestamptz;
   batch_codes text[];
 begin
@@ -128,7 +138,7 @@ begin
   end;
   perform pg_temp.assert_true((select status = 'available' from public.tools where asset_code = 'WFT-003'), 'unavailable checkout failure must be atomic');
 
-  perform public.return_tools(borrower_token, '[{"tool_token":"21000000-0000-4000-8000-000000000001","condition":"good","unavailable":false}]'::jsonb);
+  perform public.return_tools(borrower_token, jsonb_build_array(pg_temp.return_item(first_tx, 'WFT-001')));
   perform pg_temp.assert_true((select status = 'partial' from public.transactions where id = first_tx), 'one-of-two return must be partial');
   perform pg_temp.assert_true((select status = 'available' from public.tools where asset_code = 'WFT-001'), 'returned good tool must become available');
 
@@ -138,21 +148,72 @@ begin
   perform pg_temp.assert_true((select status = 'incomplete' from public.transactions where id = first_tx), 'missing item must make transaction incomplete');
   perform pg_temp.assert_true((select status = 'missing' from public.tools where asset_code = 'WFT-002'), 'missing item must mark tool missing');
 
-  perform public.return_tools(borrower_token, '[{"tool_token":"21000000-0000-4000-8000-000000000002","condition":"damaged","note":"Handle cracked","unavailable":true}]'::jsonb);
+  perform public.return_tools(borrower_token, jsonb_build_array(pg_temp.return_item(first_tx, 'WFT-002', 'damaged', 'Handle cracked', true)));
   perform pg_temp.assert_true((select status = 'returned' and completed_at is not null from public.transactions where id = first_tx), 'late-found final item must complete transaction');
   perform pg_temp.assert_true((select item_status = 'returned' and missing_at = missing_time from public.transaction_items where transaction_id = first_tx and asset_code_snapshot = 'WFT-002'), 'late-found item must preserve original missing timestamp');
   perform pg_temp.assert_true((select condition = 'damaged' and status = 'unavailable' from public.tools where asset_code = 'WFT-002'), 'damaged return must remain unavailable');
 
   second_tx := public.borrow_tools(borrower_token, array['21000000-0000-4000-8000-000000000003'::uuid]);
-  perform public.return_tools(borrower_token, '[{"tool_token":"21000000-0000-4000-8000-000000000003","condition":"good","unavailable":false}]'::jsonb);
+  previous_item := pg_temp.return_item(second_tx, 'WFT-003');
+  perform public.return_tools(borrower_token, jsonb_build_array(previous_item));
   perform pg_temp.assert_true((select status = 'returned' from public.transactions where id = second_tx), 'complete return must close transaction');
+
+  begin
+    perform public.return_tools(borrower_token, jsonb_build_array(previous_item));
+    raise exception 'TEST FAILED: duplicate return was accepted';
+  exception when sqlstate 'P0001' then
+    if sqlerrm = 'TEST FAILED: duplicate return was accepted' then raise; end if;
+  end;
+  third_tx := public.borrow_tools(borrower_token, array['21000000-0000-4000-8000-000000000003'::uuid]);
+  current_item := pg_temp.return_item(third_tx, 'WFT-003');
+  begin
+    perform public.return_tools(borrower_token, jsonb_build_array(previous_item));
+    raise exception 'TEST FAILED: stale return closed a later loan';
+  exception when sqlstate 'P0001' then
+    if sqlerrm = 'TEST FAILED: stale return closed a later loan' then raise; end if;
+  end;
+  perform pg_temp.assert_true((select status = 'borrowed' from public.transactions where id = third_tx), 'stale return must preserve the later transaction');
+  perform pg_temp.assert_true((select item_status = 'borrowed' from public.transaction_items where id = (current_item ->> 'item_id')::uuid), 'stale return must preserve the later custody item');
+  perform pg_temp.assert_true((select status = 'borrowed' from public.tools where asset_code = 'WFT-003'), 'stale return must preserve the tool custody');
+  begin
+    perform public.return_tools(borrower_token, jsonb_build_array(current_item - 'item_id'));
+    raise exception 'TEST FAILED: token-only return was accepted';
+  exception when sqlstate 'P0001' then
+    if sqlerrm = 'TEST FAILED: token-only return was accepted' then raise; end if;
+  end;
+  begin
+    perform public.return_tools(borrower_token, jsonb_build_array(current_item || jsonb_build_object('tool_token', '21000000-0000-4000-8000-000000000001')));
+    raise exception 'TEST FAILED: mismatched item and tool were accepted';
+  exception when sqlstate 'P0001' then
+    if sqlerrm = 'TEST FAILED: mismatched item and tool were accepted' then raise; end if;
+  end;
+  begin
+    perform public.return_tools((select qr_token from public.profiles where id = '01000000-0000-4000-8000-000000000005'), jsonb_build_array(current_item));
+    raise exception 'TEST FAILED: wrong borrower accepted another student custody';
+  exception when sqlstate 'P0001' then
+    if sqlerrm = 'TEST FAILED: wrong borrower accepted another student custody' then raise; end if;
+  end;
+  begin
+    perform public.return_tools(borrower_token, jsonb_build_array(current_item, current_item));
+    raise exception 'TEST FAILED: duplicate item selection was accepted';
+  exception when sqlstate 'P0001' then
+    if sqlerrm = 'TEST FAILED: duplicate item selection was accepted' then raise; end if;
+  end;
+  begin
+    perform public.return_tools(borrower_token, jsonb_build_array(current_item, previous_item || jsonb_build_object('tool_token', '21000000-0000-4000-8000-000000000004')));
+    raise exception 'TEST FAILED: partially invalid return was accepted';
+  exception when sqlstate 'P0001' then
+    if sqlerrm = 'TEST FAILED: partially invalid return was accepted' then raise; end if;
+  end;
+  perform pg_temp.assert_true((select item_status = 'borrowed' from public.transaction_items where id = (current_item ->> 'item_id')::uuid), 'invalid return batches must be atomic');
+  perform public.return_tools(borrower_token, jsonb_build_array(current_item));
 
   second_tx := public.borrow_tools(borrower_token, array[(select qr_token from public.tools where asset_code = 'KIT-001')]);
   third_tx := public.borrow_tools(borrower_token, array[(select qr_token from public.tools where asset_code = 'KIT-002')]);
   perform pg_temp.assert_true((select count(*) = 2 from public.transactions where id in (second_tx, third_tx) and status = 'borrowed'), 'student may have multiple active transactions');
   perform public.return_tools(borrower_token, jsonb_build_array(
-    jsonb_build_object('tool_token', (select qr_token from public.tools where asset_code = 'KIT-001'), 'condition', 'good', 'unavailable', false),
-    jsonb_build_object('tool_token', (select qr_token from public.tools where asset_code = 'KIT-002'), 'condition', 'good', 'unavailable', false)
+    pg_temp.return_item(second_tx, 'KIT-001'),
+    pg_temp.return_item(third_tx, 'KIT-002')
   ));
   perform pg_temp.assert_true((select count(*) = 2 from public.transactions where id in (second_tx, third_tx) and status = 'returned'), 'one reconciliation may complete multiple transactions');
 

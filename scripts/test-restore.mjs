@@ -51,7 +51,9 @@ export async function verifyFixtureRestore(source, connection, directory) {
     const own = (await restored.query("select id from public.profiles")).rows;
     assert.equal(own.length, 1, "Student retains own-profile isolation after restore");
     assert.equal(own[0].id, "a0000000-0000-4000-8000-000000000002");
-    assert.equal((await restored.query("select count(*)::int as count from public.transaction_items")).rows[0].count, 1);
+    const ownTransactions = new Set(rows["public.transactions"].filter(transaction => transaction.borrower_id === own[0].id).map(transaction => transaction.id));
+    const ownItems = rows["public.transaction_items"].filter(item => ownTransactions.has(item.transaction_id));
+    assert.equal((await restored.query("select count(*)::int as count from public.transaction_items")).rows[0].count, ownItems.length, "Restored student sees exactly their own historical and outstanding items");
     await restored.query("reset role; select set_config('request.jwt.claim.sub','',false); set role anon");
     await assert.rejects(restored.query("select count(*)::int as count from public.tools"), { code: "42501" }, "Anonymous inventory access stays denied");
     await restored.query("reset role; select set_config('request.jwt.claim.sub','a0000000-0000-4000-8000-000000000001',false); set role authenticated");

@@ -1,6 +1,6 @@
 # Thesis Defense Walkthrough
 
-Allow about six minutes. Before the presentation, run the demo reset once, print at least two sample tool labels, and open the student QR on a second phone.
+Allow about seven minutes. Rehearse before the presentation, verify all three demo sign-ins, print at least two sample tool labels, and open the student QR on a second phone. Schedule any owner-approved demo reset before rehearsal while no one else is using the shared demonstration inventory.
 
 ## 1. Introduce the system (30 seconds)
 
@@ -36,14 +36,16 @@ Scan the second tool and confirm to complete the return. If demonstrating damage
 
 ## 6. Missing and late recovery (60 seconds)
 
-Use the prepared incomplete demo transaction. Identify the borrower, expand **Explicitly mark missing**, select the confirmed missing tool, enter a note, and confirm. Explain that missing is never inferred from an unscanned partial return.
+Use a prepared borrowed demonstration tool. Identify the borrower, expand **Explicitly mark missing**, select the confirmed missing tool, enter a note, and confirm. Explain that missing is never inferred from an unscanned partial return. An already-missing tool is shown with its status and cannot be marked missing again.
 
 Then scan that missing tool in Return. The item returns normally while its original missing timestamp remains in history.
 
 ## 7. Instructor and reports (45 seconds)
 
-Sign in as the demo instructor. Show the read-only dashboard, inventory, student directory, transaction details, and tool history. Export the filtered CSV. End by stating that instructors cannot mutate records and operational users cannot see demo records.
+Sign in as the demo instructor. Show the read-only dashboard, inventory, student directory, transaction details, and tool history. Export the filtered CSV and open **Print A4 report**. Explain that the CSV records each tool's own return date. Show the blank evaluation worksheet from the guide. End by stating that instructors cannot mutate records and operational users cannot see demo records.
 
 ## Recovery plan
 
-If a camera is unreliable under defense-room lighting, switch to QR-image upload, a USB scanner, or typed fictional codes. These are first-class supported paths, not emergency database workarounds.
+If a camera is unreliable under defense-room lighting, switch to JPEG/PNG/WebP QR-image upload, a USB scanner, or typed fictional codes. If a return selection is stale, reload custody and rescan. Check history after a connection interruption before retrying a confirmation.
+
+Shared demo accounts are exempt from personal authenticator setup. Demonstrate operational two-factor onboarding separately using an approved disposable test account; do not describe demo sign-in as evidence that a phone authenticator was tested.
