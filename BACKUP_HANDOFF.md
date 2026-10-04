@@ -38,6 +38,8 @@ Use a disposable project or local target owned by the deployment owner. Never pr
 
 `npm run test:db` includes a bounded logical backup/restore of fictional fixtures into a second local database, with a SHA-256 check and full-row, QR, custody/history, SQL-function and access-rule comparisons. It accepts no hosted connection string. This is a fixture recovery regression, not a full Supabase backup. It does not verify recovery of real Supabase Auth, MFA secrets or photo bytes; the owner must complete those parts on a suitable disposable hosted target.
 
+The 4 October pre-migration checkpoint captured 42 table datasets, schema/configuration metadata and zero existing photo objects. Its checksum and decrypt/readback were verified. The local copy uses Windows DPAPI CurrentUser encryption and requires the original Windows identity and DPAPI keys; copying that file alone to another computer does not establish alternate-owner recovery. Its private manifest and recovery README are kept beside the encrypted copy. Establish a portable owner-managed backup and prove recovery on a disposable target before real pilot entry.
+
 ## Authenticator recovery
 
 Encourage real users to verify a backup authenticator before replacing a phone. A password reset does not remove MFA. When all factors are lost, the trusted owner verifies identity through the laboratory's approved process, revokes affected sessions and recovers only that user's factors through Supabase administration. Require new enrollment. Keep the documented owner access available during rollout.
