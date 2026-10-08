@@ -227,6 +227,14 @@ button:disabled { cursor: not-allowed; opacity: .58; }
 .auth-form-heading { margin-bottom: 26px; }.auth-form-heading h2 { margin: 16px 0 5px; font: 700 38px/1 var(--display); text-transform: uppercase; }.auth-form-heading p { margin: 0; color: var(--muted); line-height: 1.6; }
 .industrial-icon { width: 54px; height: 54px; display: grid; place-items: center; background: var(--cobalt); color: white; border-radius: 7px; box-shadow: 8px 8px 0 #c9edf8; }.industrial-icon svg { width: 28px; }
 .form-stack { display: grid; gap: 17px; }.form-stack label, .form-grid > label { display: grid; gap: 7px; font-size: 13px; font-weight: 700; }
+.password-field { display: grid; gap: 7px; min-width: 0; font-size: 13px; font-weight: 700; }
+.password-input-wrap { position: relative; }
+.password-input-wrap input { padding-right: 52px; }
+.password-toggle { position: absolute; right: 1px; top: 1px; width: 44px; height: calc(100% - 2px); min-height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; }
+.password-toggle:hover { color: var(--cobalt); background: #f0f4f8; }
+.password-toggle:focus-visible { outline: 2px solid var(--cobalt); outline-offset: -3px; }
+.password-toggle:disabled { cursor: default; opacity: .5; }
+.password-toggle svg { width: 20px; height: 20px; }
 .form-stack input, .form-grid input, .form-grid select, .form-grid textarea, .filter-bar input, .filter-bar select, .manual-scan input, .return-controls input, .return-controls select, .missing-box textarea, .inline-disclosure input { width: 100%; min-height: 46px; border: 1px solid #aeb8c7; border-radius: 5px; padding: 10px 12px; background: white; }
 textarea { resize: vertical; }.form-stack small, .form-grid small, .field small { color: var(--muted); font-weight: 450; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px 20px; }.form-grid .full { grid-column: 1 / -1; }

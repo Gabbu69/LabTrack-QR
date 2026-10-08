@@ -11,7 +11,7 @@ export const authCookieOptions = {
   sameSite: "lax" as const,
   path: "/",
 };
-type Session = { user: string; session: string; started: number; seen: number };
+export type Session = { user: string; session: string; started: number; seen: number; emailOtpSent?: number };
 function signature(value: string) {
   return createHmac("sha256", requireSupabaseSecret()).update(`labtrack-session-v1:${value}`).digest("base64url");
 }
@@ -30,7 +30,8 @@ export function readSession(value: string | undefined, user: string, session: st
     const parsed = JSON.parse(Buffer.from(payload, "base64url").toString()) as Session;
     if (parsed.user !== user || parsed.session !== session || !Number.isFinite(parsed.started) || !Number.isFinite(parsed.seen)
       || parsed.started > parsed.seen || parsed.seen > now
-      || now - parsed.seen >= IDLE_SECONDS || now - parsed.started >= MAX_SESSION_SECONDS) return null;
+      || now - parsed.seen >= IDLE_SECONDS || now - parsed.started >= MAX_SESSION_SECONDS
+      || (parsed.emailOtpSent !== undefined && (!Number.isFinite(parsed.emailOtpSent) || parsed.emailOtpSent < parsed.started || parsed.emailOtpSent > now))) return null;
     return parsed;
   } catch { return null; }
 }

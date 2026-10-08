@@ -15,7 +15,7 @@ export function apiRoute(options: AccessOptions, handler: (request: NextRequest,
       }
       const context = await getAuthContext();
       const profile = context?.profile ?? null;
-      const failure = accessFailure(profile, options, context?.aal);
+      const failure = accessFailure(profile, options, context?.aal, context?.emailOtpVerified);
       if (failure) return NextResponse.json({ error: failure.message, code: failure.code }, { status: failure.status, headers: { "Cache-Control": "private, no-store" } });
       const response = await handler(request, profile!);
       response.headers.set("Cache-Control", "private, no-store");

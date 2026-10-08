@@ -13,6 +13,7 @@ import { performPasswordUpdate } from "@/lib/password-operation";
 import { normalizeProfilePhoto } from "@/lib/profile-photo";
 import { loginSchema, passwordSchema, registrationSchema, profileSchema } from "@/lib/validation";
 import { requiresMfa } from "@/lib/mfa";
+import { secondFactorPath, sendEmailOtp } from "@/lib/email-otp";
 
 function value(formData: FormData, key: string) { return String(formData.get(key) ?? ""); }
 function go(path: string, key: "error" | "message", message: string): never {
@@ -41,7 +42,16 @@ export async function loginAction(formData: FormData) {
   if (claimsError || verified?.claims?.sub !== data.user.id || typeof sessionId !== "string") { await supabase.auth.signOut(); go("/login", "error", "Session could not be established. Please sign in again."); }
   const now = Math.floor(Date.now() / 1000);
   (await cookies()).set(SESSION_COOKIE, signSession({ user: data.user.id, session: sessionId, started: now, seen: now }), { ...authCookieOptions, maxAge: IDLE_SECONDS });
-  if (requiresMfa(profile, verified?.claims?.aal)) redirect("/two-factor");
+  if (requiresMfa(profile, verified?.claims?.aal)) {
+    let path: string;
+    try { path = await secondFactorPath(supabase); }
+    catch { await supabase.auth.signOut(); go("/login", "error", "Account verification is temporarily unavailable. Please try again later."); }
+    if (path === "/verify-email") {
+      const result = await sendEmailOtp(supabase, parsed.data.email, { user: data.user.id, session: sessionId, started: now, seen: now });
+      go(path, result.error ? "error" : "message", result.error ?? result.message!);
+    }
+    redirect(path);
+  }
   redirect(profile.must_change_password ? "/change-password" : "/dashboard");
 }
 
@@ -60,6 +70,13 @@ export async function registerAction(formData: FormData) {
     options: { data: { full_name: parsed.data.fullName, student_id: parsed.data.studentId, year_section: parsed.data.yearSection, group_number: parsed.data.groupNumber, contact_number: parsed.data.contactNumber } },
   });
   if (error) go("/register", "error", error.message.includes("registered") ? "An account already uses this email." : "Registration could not be completed. Try again.");
+  if (data.session) {
+    // Establish password proof before sending the inbox verification code.
+    const loginForm = new FormData();
+    loginForm.set("email", parsed.data.email);
+    loginForm.set("password", parsed.data.password);
+    await loginAction(loginForm);
+  }
   await supabase.auth.signOut();
   go("/login", "message", data.session
     ? "Registration received. A custodian must approve your account before you can borrow tools."

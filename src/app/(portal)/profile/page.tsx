@@ -6,7 +6,7 @@ import { Notice } from "@/components/feedback/notice";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { requireProfile } from "@/lib/auth";
+import { getAuthContext, requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isSharedDemoIdentity, SHARED_DEMO_ACCOUNT_NOTICE } from "@/lib/demo-identities";
 
@@ -14,6 +14,7 @@ export const metadata = { title: "Profile" };
 
 export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ error?: string; message?: string }> }) {
   const profile = await requireProfile();
+  const context = await getAuthContext();
   const query = await searchParams;
   let photoUrl: string | null = null;
   if (profile.photo_path) {
@@ -32,8 +33,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       </section>
       <section className="profile-security" aria-labelledby="profile-security-title">
         <ShieldCheck aria-hidden="true" />
-        <div><h2 id="profile-security-title">Two-factor authentication</h2><p>{profile.data_scope === "demo" ? "Shared demo accounts are exempt. Personal accounts require an authenticator code." : "Your password and authenticator code protect your account."}</p></div>
-        {profile.data_scope !== "demo" && <Link href="/two-factor?manage=1" className="button button-secondary"><Smartphone aria-hidden="true" />Manage authenticators</Link>}
+        <div><h2 id="profile-security-title">Two-factor authentication</h2><p>{profile.data_scope === "demo" ? "Shared demo accounts are exempt. Personal accounts require a sign-in verification code." : context?.emailOtpVerified ? "Your password and an email verification code protect your account." : "Your password and authenticator code protect your account."}</p></div>
+        {profile.data_scope !== "demo" && <Link href="/two-factor?manage=1" className="button button-secondary"><Smartphone aria-hidden="true" />{context?.emailOtpVerified ? "Add an authenticator" : "Manage authenticators"}</Link>}
       </section>
       <section className="content-card profile-card">
         <div className="profile-summary">

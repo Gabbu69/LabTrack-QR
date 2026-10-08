@@ -9,6 +9,7 @@
 /coverage
 /playwright-report
 /test-results
+/.playwright-cli
 /.audit-evidence
 /output
 .labtrack-workspace

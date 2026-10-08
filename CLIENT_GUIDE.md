@@ -18,10 +18,12 @@ Demo records are separate from operational records, but all demo users share thi
 
 ## Personal accounts for the supervised pilot
 
-1. Students register with their own details. Follow the confirmation message shown by the app: email confirmation is conditional on the owner's current setup. Custodian approval remains required. Automatic email confirmation does not establish ownership of an inbox.
-2. Sign in with your personal password, then set up an authenticator on your phone. Scan the setup QR inside your authenticator app and enter the current six-digit code. Keep the setup QR and manual key private. Later sign-ins ask for a current code.
-3. Staff given a temporary password complete authenticator verification, then choose their own private password. Students awaiting approval see a pending account message until a custodian approves them.
-4. Add and verify a backup authenticator before replacing or losing your phone. Custodian password resets do not remove two-factor protection. If every authenticator is lost, contact the deployment owner for identity-verified recovery.
+Personal accounts currently use authenticator verification. On first sign-in, set up an authenticator, scan its setup QR inside your authenticator app, and confirm its current code. The optional email-code flow below requires the owner to complete [email sender setup and hosted verification](./EMAIL_OTP_SETUP.md) and enable `EMAIL_OTP_ENABLED=true`; until then, use your authenticator.
+
+1. Students register with their own details and a real Gmail or school inbox they can access. Follow any provider confirmation instructions shown by the app. Custodian approval remains required.
+2. New personal accounts verify a six-digit code sent to their inbox after the password is accepted. Check spam if needed; use **Resend email code** after 60 seconds. Codes expire after 10 minutes. Accounts that already enrolled an authenticator keep using the current code from that app.
+3. Staff given a temporary password verify their sign-in code, then choose their own private password. Students awaiting approval see a pending account message until a custodian approves them.
+4. Email-verified users may add an authenticator from Profile. Scan its setup QR inside an authenticator app and confirm its code; subsequent sign-ins then require the authenticator. Keep the QR and manual key private. Add a verified backup device before replacing a phone. Custodian password resets do not remove an existing authenticator; contact the deployment owner if every authenticator is lost.
 5. Students can view their own custody and history; instructors monitor records; custodians approve users and perform borrowing and returns.
 
 ## QR scanning and safe reconciliation

@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   cookie: vi.fn(),
   session: vi.fn(),
   createClient: vi.fn(),
+  rpc: vi.fn(),
 }));
 
 vi.mock("react", () => ({ cache: <T>(callback: T) => callback }));
@@ -41,12 +42,13 @@ beforeEach(() => {
   mocks.select.mockReturnValue(query);
   mocks.eq.mockReturnValue(query);
   mocks.from.mockReturnValue(query);
-  mocks.createClient.mockResolvedValue({ auth: { getClaims: mocks.claims }, from: mocks.from });
+  mocks.rpc.mockResolvedValue({ data: false, error: null });
+  mocks.createClient.mockResolvedValue({ auth: { getClaims: mocks.claims }, from: mocks.from, rpc: mocks.rpc });
 });
 
 describe("signed authentication context", () => {
   it("retains an AAL1 identity for setup without granting portal access", async () => {
-    expect(await getAuthContext()).toEqual({ profile: account, aal: "aal1", session });
+    expect(await getAuthContext()).toEqual({ profile: account, aal: "aal1", session, emailOtpVerified: false });
     expect(mocks.session).toHaveBeenCalledWith("signed-cookie", account.id, session.session);
     expect(mocks.from).toHaveBeenCalledWith("profiles");
     expect(mocks.eq).toHaveBeenCalledWith("id", account.id);
@@ -91,6 +93,23 @@ describe("signed authentication context", () => {
 });
 
 describe("portal authentication assurance", () => {
+  it("accepts email verification only from the database for the signed provider session", async () => {
+    mocks.session.mockReturnValue({ ...session, emailOtpSent: 15 });
+    mocks.rpc.mockResolvedValue({ data: true, error: null });
+    expect(await getProfile()).toEqual(account);
+    expect(mocks.rpc).toHaveBeenCalledWith("email_otp_verified");
+  });
+
+  it("does not trust the signed send timestamp as successful email verification", async () => {
+    mocks.session.mockReturnValue({ ...session, emailOtpSent: 15 });
+    expect(await getProfile()).toBeNull();
+  });
+
+  it("fails closed if the email verification lookup is unavailable", async () => {
+    mocks.session.mockReturnValue({ ...session, emailOtpSent: 15 });
+    mocks.rpc.mockResolvedValue({ data: true, error: { message: "private detail" } });
+    await expect(getProfile()).rejects.toThrow("Account verification could not be loaded");
+  });
   it.each(["aal1", undefined, null, "unknown"])("does not authorize operational access at assurance %s", async (aal) => {
     claims(aal);
     expect(await getProfile()).toBeNull();

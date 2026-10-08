@@ -24,3 +24,10 @@ it("rejects future timestamps and uses HttpOnly SameSite cookies", () => {
   expect(readSession(signSession(base), base.user, base.session, 99)).toBeNull();
   expect(authCookieOptions).toMatchObject({ httpOnly: true, sameSite: "lax", path: "/" });
 });
+it("preserves an email send timestamp without treating it as verification proof", () => {
+  const pending = { ...base, emailOtpSent: 100 };
+  expect(readSession(signSession(pending), base.user, base.session, 101)).toEqual(pending);
+  for (const emailOtpSent of [99, 102, NaN]) {
+    expect(readSession(signSession({ ...base, emailOtpSent }), base.user, base.session, 101)).toBeNull();
+  }
+});

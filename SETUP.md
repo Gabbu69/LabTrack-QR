@@ -22,7 +22,7 @@ Review pending SQL before using `npm run db:push`. Record applied versions and r
 
 ## Authenticator 2FA rollout
 
-This version implements mandatory TOTP 2FA for operational accounts. Shared demo accounts are exempt only through their trusted database scope and cannot enroll personal authenticators. This code does not prove that the hosted release or provider settings have been updated.
+Operational accounts require a password and a sign-in verification code. Authenticator sign-in and enrollment remain the default. The October 8 change supports email OTP for personal accounts without an enrolled authenticator only when `EMAIL_OTP_ENABLED=true` is set on the server after SMTP and inbox delivery are verified; accounts with a verified authenticator retain TOTP. See [EMAIL_OTP_SETUP.md](./EMAIL_OTP_SETUP.md) for SMTP, email templates, the new migration, release sequencing, and pending hosted verification. Shared demo accounts are exempt only through their trusted database scope and cannot enroll personal authenticators. Local code does not prove that the hosted release or provider settings have been updated.
 
 1. Inspect the selected project's migration history and pending changes using a compatible CLI (`npx supabase@2.75.0 db push --linked --dry-run`) or the trusted Management API. Review SQL before applying it.
 2. Confirm the login-protection prerequisite `20260930010000_login_protection.sql` is applied and Supabase Auth allows TOTP enrollment and verification. Keep a trusted deployment-owner management connection available throughout rollout.
@@ -32,7 +32,7 @@ This version implements mandatory TOTP 2FA for operational accounts. Shared demo
 
 Schedule the MFA migration and application as a coordinated release. Older deployments sharing the backend will immediately lose password-only operational access when the migration is applied, even if they have no MFA screen. Inform real users about enrollment and keep the trusted owner management connection available throughout rollout.
 
-Users sign in with their password, set up or verify a six-digit authenticator code, and then complete any required private-password change. The code normally changes every 30 seconds; it is not sent by email or SMS. The Authenticator page supports verified backup devices and will not remove the last verified factor. Password attempts, MFA verification and device management use independent five-attempt, 15-minute limits. Pending student approval and disabled-account restrictions still apply after MFA.
+Users sign in with their password, verify their six-digit email code or existing authenticator, and then complete any required private-password change. Email codes expire after 10 minutes; authenticator codes normally change every 30 seconds. Email-verified users can enroll an authenticator from Profile; later sign-ins require that authenticator. The Authenticator page supports verified backup devices and will not remove the last verified factor. Password attempts, authenticator verification, email delivery, email verification, and device management have separate five-attempt, 15-minute limits. Email resends also require a 60-second interval. Pending student approval and disabled-account restrictions still apply after verification.
 
 ## Local verification
 
@@ -82,7 +82,7 @@ Prepare the compatible Preview build, then coordinate the reviewed migrations an
 
 ## Account administration and recovery
 
-Custodians approve students and create/reset staff accounts through User Management. For operational accounts, temporary credentials require authenticator verification followed by a private password before operational APIs, RPCs, inventory or photo access become available. Demo accounts keep the private-password requirement without personal MFA. Remove `BOOTSTRAP_*` variables after one-time staff provisioning. Do not bootstrap or seed again on an established project.
+Custodians approve students and create/reset staff accounts through User Management. For operational accounts, temporary credentials require email-code verification or the account's existing authenticator, followed by a private password before operational APIs, RPCs, inventory or photo access become available. Demo accounts keep the private-password requirement without personal MFA. Remove `BOOTSTRAP_*` variables after one-time staff provisioning. Do not bootstrap or seed again on an established project.
 
 Add and verify a backup authenticator before a device is lost. A password reset does not remove the second-factor requirement. There are no app recovery codes or custodian MFA-reset controls. If every factor is unavailable, the deployment owner must verify the person's identity out of band, recover only that account through trusted Supabase administration, revoke affected sessions and require fresh enrollment. Never disclose setup QR codes or manual secrets, disable MFA globally, or relabel real users as demos to restore access.
 

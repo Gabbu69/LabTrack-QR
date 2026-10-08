@@ -15,9 +15,11 @@ const entry = `
   import React from "react";
   import { createRoot } from "react-dom/client";
   import { TwoFactorForm } from "@/components/auth/two-factor-form";
+  import { EmailOtpForm } from "@/components/auth/email-otp-form";
   import { LabTrackMark } from "@/components/branding/labtrack-mark";
   const mode = window.__MFA_FIXTURE_MODE__;
   const manage = mode.startsWith("manage");
+  const email = mode === "email";
   const first = { id: "550e8400-e29b-41d4-a716-446655440001", name: "My phone" };
   const backup = { id: "550e8400-e29b-41d4-a716-446655440002", name: "Backup authenticator with a deliberately long display name" };
   const factors = mode.startsWith("setup") ? [] : mode.endsWith("two") ? [first, backup] : [first];
@@ -25,9 +27,9 @@ const entry = `
     <main className="mfa-shell">
       <header className="mfa-header"><div className="mfa-brand"><LabTrackMark/><span>LabTrack <b>QR</b></span></div><button className="button button-secondary" type="button">Sign out</button></header>
       <div className="mfa-main">
-        <div className="mfa-heading"><div><h1>{manage ? "Two-factor authentication" : mode.startsWith("setup") ? "Secure your account" : "Verify your sign-in"}</h1><p>dummy-account@example.test</p></div></div>
-        <p className="mfa-intro">{manage ? "Your account is protected with authenticator codes." : "An authenticator code is required with your password to access laboratory records."}</p>
-        <TwoFactorForm factors={factors} manage={manage}/>
+        <div className="mfa-heading"><div><h1>{email ? "Verify your email" : manage ? "Two-factor authentication" : mode.startsWith("setup") ? "Secure your account" : "Verify your sign-in"}</h1><p>dummy-account@example.test</p></div></div>
+        <p className="mfa-intro">{email ? "Your password was accepted. Verify the code sent to your email before entering LabTrack." : manage ? "Your account is protected with authenticator codes." : "An authenticator code is required with your password to access laboratory records."}</p>
+        {email ? <EmailOtpForm/> : <TwoFactorForm factors={factors} manage={manage}/>}
       </div>
     </main>
   );
@@ -43,6 +45,11 @@ const actions = `
     return { error: "Code was not accepted. Use the current code and try again." };
   }
   export async function removeMfaAction() { return { message: "Fixture authenticator removal checked." }; }
+  export async function verifyEmailOtpAction() {
+    window.__MFA_VERIFY_ATTEMPTS__ += 1;
+    return { error: "Code was not accepted. Use the latest email code and try again." };
+  }
+  export async function resendEmailOtpAction() { return { message: "A verification code was sent to your email. Check your inbox and spam folder." }; }
 `;
 
 const compiled = await build({
@@ -56,7 +63,7 @@ const compiled = await build({
     enforce: "pre",
     resolveId(id) {
       if (id === "virtual:mfa-ui-entry") return entryId;
-      if (id === "@/app/actions/mfa" || id.replaceAll("\\", "/") === join(root, "src", "app", "actions", "mfa").replaceAll("\\", "/")) return actionId;
+      if (["mfa", "email-otp"].some(name => id === `@/app/actions/${name}` || id.replaceAll("\\", "/") === join(root, "src", "app", "actions", name).replaceAll("\\", "/"))) return actionId;
       return null;
     },
     load(id) {
@@ -107,6 +114,19 @@ try {
       return route.abort();
     });
     await page.goto("http://mfa-ui.test/");
+
+    await render(page, "email");
+    await verifyGeometry(page, `${viewport.label}-email`);
+    await page.getByLabel("6-digit email code").fill("12ab34");
+    await page.getByRole("button", { name: "Verify and continue" }).click();
+    assert.equal(await page.evaluate(() => window.__MFA_VERIFY_ATTEMPTS__), 0, "Malformed email code was submitted.");
+    await page.getByLabel("6-digit email code").fill("123456");
+    await page.getByRole("button", { name: "Verify and continue" }).click();
+    await page.getByRole("alert").waitFor();
+    await verifyGeometry(page, `${viewport.label}-email-error`);
+    await page.getByRole("button", { name: "Resend email code" }).click();
+    await page.getByText("A verification code was sent to your email. Check your inbox and spam folder.").waitFor();
+    await verifyGeometry(page, `${viewport.label}-email-resend`);
 
     await render(page, "setup");
     await verifyGeometry(page, `${viewport.label}-setup`);

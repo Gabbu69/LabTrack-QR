@@ -46,6 +46,8 @@ try {
   console.log("PASS: login limit, cooldown, account isolation and server-only permissions");
   await client.query(await readFile(new URL("../supabase/tests/mfa.integration.sql", import.meta.url), "utf8"));
   console.log("PASS: MFA assurance, direct RPC/RLS/storage enforcement, demo isolation and role restrictions");
+  await client.query(await readFile(new URL("../supabase/tests/email-otp.integration.sql", import.meta.url), "utf8"));
+  console.log("PASS: email OTP session binding, server-only attestation, expiry, authenticator protection and approval boundaries");
 
   // Committed fixtures are confined to this newly created disposable cluster.
   await client.query(`insert into auth.users (id,email,raw_user_meta_data,raw_app_meta_data) values

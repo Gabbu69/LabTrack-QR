@@ -12,6 +12,8 @@ create table auth.users (
   encrypted_password text, email_confirmed_at timestamptz,
   raw_user_meta_data jsonb default '{}', raw_app_meta_data jsonb default '{}'
 );
+create table auth.sessions (id uuid primary key, user_id uuid not null references auth.users(id) on delete cascade);
+create table auth.mfa_factors (id uuid primary key, user_id uuid not null references auth.users(id) on delete cascade, status text not null);
 create function auth.uid() returns uuid language sql stable as $$
   select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
 $$;

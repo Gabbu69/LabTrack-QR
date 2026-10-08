@@ -7,6 +7,7 @@ The application uses Next.js 16, React 19, TypeScript, Tailwind CSS, Supabase Po
 ## Included workflows
 
 - Student registration, custodian approval, login, profile photo, personal QR, current custody, and personal history
+- Authenticator verification for personal accounts, with optional password plus email-code verification after the deployment owner enables the configured sender; see [email sender setup and release requirements](./EMAIL_OTP_SETUP.md)
 - Custodian dashboard, user management, temporary-password staff creation/reset, batch asset creation, individual tool QR labels, guided borrow, guided return, explicit missing-item handling, and CSV export
 - Instructor read-only inventory, borrower, transaction, and tool-history monitoring
 - Isolated fictional demo accounts, 20 physical tools, representative transactions, and custodian-only demo reset

@@ -15,7 +15,7 @@ export async function consumeLoginAttempt(email: string): Promise<boolean> {
   return data === true;
 }
 
-export async function consumeMfaAttempt(userId: string, purpose: "verify" | "manage" = "verify"): Promise<boolean> {
+export async function consumeMfaAttempt(userId: string, purpose: "verify" | "manage" | "email-send" | "email-verify" = "verify"): Promise<boolean> {
   const key = limiterKey(`mfa:${purpose}:${userId}`);
   const { data, error } = await createAdminClient().rpc("consume_login_attempt", { p_key: key });
   if (error) throw new Error("Authenticator protection is unavailable.");

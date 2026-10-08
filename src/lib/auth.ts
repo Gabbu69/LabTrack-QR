@@ -21,18 +21,25 @@ export const getAuthContext = cache(async () => {
   if (!session) return null;
   const { data: profile, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
   if (error) throw new Error("Account details could not be loaded. Please try again.");
-  return profile ? { profile: profile as Profile, aal: data?.claims?.aal, session } : null;
+  if (!profile) return null;
+  let emailOtpVerified = false;
+  if (profile.data_scope !== "demo" && data?.claims?.aal !== "aal2" && session.emailOtpSent !== undefined) {
+    const { data: verified, error: verificationError } = await supabase.rpc("email_otp_verified");
+    if (verificationError) throw new Error("Account verification could not be loaded. Please try again.");
+    emailOtpVerified = verified === true;
+  }
+  return { profile: profile as Profile, aal: data?.claims?.aal, session, emailOtpVerified };
 });
 
 export const getProfile = cache(async (): Promise<Profile | null> => {
   const context = await getAuthContext();
-  return context && !accessFailure(context.profile, {}, context.aal) ? context.profile : null;
+  return context && !accessFailure(context.profile, {}, context.aal, context.emailOtpVerified) ? context.profile : null;
 });
 
 export async function requireProfile(roles?: AppRole[], options: AccessOptions = {}) {
   const context = await getAuthContext();
   const profile = context?.profile ?? null;
-  const failure = accessFailure(profile, { ...options, roles }, context?.aal);
+  const failure = accessFailure(profile, { ...options, roles }, context?.aal, context?.emailOtpVerified);
   if (failure?.status === 401) redirect("/login");
   if (failure?.code === "MFA_REQUIRED") redirect("/two-factor");
   if (failure?.code === "PASSWORD_CHANGE_REQUIRED") redirect("/change-password");

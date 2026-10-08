@@ -8,6 +8,7 @@ import { Notice } from "@/components/feedback/notice";
 import { getAuthContext, requireProfile } from "@/lib/auth";
 import type { MfaFactor } from "@/lib/mfa";
 import { createClient } from "@/lib/supabase/server";
+import { isEmailOtpEnabled } from "@/lib/email-otp";
 
 export const metadata = { title: "Two-factor authentication", robots: { index: false, follow: false } };
 
@@ -18,9 +19,9 @@ export default async function TwoFactorPage({ searchParams }: { searchParams: Pr
   if (profile.data_scope === "demo") redirect(profile.must_change_password ? "/change-password" : "/profile");
   const query = await searchParams;
   const manage = query.manage === "1";
-  if (manage && context.aal !== "aal2") redirect("/two-factor");
-  if (context.aal === "aal2" && profile.must_change_password) redirect("/change-password");
-  if (context.aal === "aal2" && !manage) redirect("/dashboard");
+  if (manage && context.aal !== "aal2" && !context.emailOtpVerified) redirect("/two-factor");
+  if ((context.aal === "aal2" || context.emailOtpVerified) && profile.must_change_password) redirect("/change-password");
+  if ((context.aal === "aal2" || context.emailOtpVerified) && !manage) redirect("/dashboard");
 
   let factors: MfaFactor[] = [];
   let unavailable = false;
@@ -37,6 +38,7 @@ export default async function TwoFactorPage({ searchParams }: { searchParams: Pr
     unavailable = true;
   }
   const enrolling = !manage && factors.length === 0 && !unsupportedFactor;
+  if (enrolling && !unavailable && isEmailOtpEnabled()) redirect("/verify-email");
   return (
     <main className="mfa-shell">
       <header className="mfa-header">
