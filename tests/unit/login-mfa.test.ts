@@ -6,12 +6,14 @@ const state = vi.hoisted(() => ({
   claimsError: false, signOut: vi.fn(), set: vi.fn(), allowed: true, passwordError: false,
   attempts: 0, clear: vi.fn(),
   factorPath: "/two-factor", send: vi.fn(), signup: vi.fn(),
+  studentIdCheck: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(`REDIRECT:${url}`); } }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ set: state.set }) }));
 vi.mock("@/lib/env", () => ({ isSupabaseConfigured: () => true }));
 vi.mock("@/lib/email-otp", () => ({ secondFactorPath: async () => state.factorPath, sendEmailOtp: state.send }));
+vi.mock("@/lib/registration", () => ({ studentIdInUse: state.studentIdCheck, DUPLICATE_STUDENT_ID: "This Student ID already has an account." }));
 vi.mock("@/lib/login-limit", () => ({
   consumeLoginAttempt: async () => state.allowed && ++state.attempts <= 5,
   clearLoginAttempts: (email: string) => state.clear(email),
@@ -33,6 +35,7 @@ beforeEach(() => {
   state.attempts = 0; state.clear.mockReset().mockImplementation(async () => { state.attempts = 0; });
   state.factorPath = "/two-factor"; state.send.mockResolvedValue({ message: "Code sent." });
   state.signup.mockResolvedValue({ data: { session: { access_token: "fixture" } }, error: null });
+  state.studentIdCheck.mockReset().mockResolvedValue(false);
 });
 function form() { const data = new FormData(); data.set("email", "student@school.test"); data.set("password", "test-password"); return data; }
 function registration() {
@@ -51,6 +54,33 @@ it("preserves provider confirmation requirements when signup returns no session"
   state.signup.mockResolvedValue({ data: { session: null }, error: null });
   await expect(registerAction(registration())).rejects.toThrow("REDIRECT:/login?message=Registration%20received.%20Check%20your%20inbox");
   expect(state.send).not.toHaveBeenCalled();
+});
+
+it("explains a duplicate Student ID without attempting to create another account", async () => {
+  state.studentIdCheck.mockResolvedValue(true);
+  await expect(registerAction(registration())).resolves.toEqual({ error: "This Student ID already has an account.", field: "studentId" });
+  expect(state.signup).not.toHaveBeenCalled();
+});
+it("detects a duplicate created between preflight and provider signup", async () => {
+  state.studentIdCheck.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+  state.signup.mockResolvedValue({ data: { session: null }, error: { status: 500, message: "Database error saving new user" } });
+  await expect(registerAction(registration())).resolves.toMatchObject({ field: "studentId" });
+});
+it("fails closed when the Student ID lookup is unavailable", async () => {
+  state.studentIdCheck.mockRejectedValue(new Error("private database details"));
+  const result = await registerAction(registration());
+  expect(result.error).toMatch(/temporarily unavailable/);
+  expect(result.error).not.toMatch(/private/);
+  expect(state.signup).not.toHaveBeenCalled();
+});
+it("returns registration validation errors without losing the page", async () => {
+  const invalid = registration(); invalid.set("student_id", "");
+  expect(await registerAction(invalid)).toMatchObject({ field: "studentId" });
+  expect(state.signup).not.toHaveBeenCalled();
+});
+it("gives existing email accounts a sign-in recovery path", async () => {
+  state.signup.mockResolvedValue({ data: { session: null }, error: { code: "user_already_exists" } });
+  expect((await registerAction(registration())).error).toMatch(/Sign in with that account/);
 });
 
 it("directs password-only real accounts to MFA, not the portal", async () => {

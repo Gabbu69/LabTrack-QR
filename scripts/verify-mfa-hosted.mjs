@@ -28,15 +28,61 @@ function totp(secret) {
   return String((hash.readUInt32BE(offset) & 0x7fffffff) % 1000000).padStart(6, "0");
 }
 const before = await counter();
-const email = `mfa-audit-${Date.now()}-${randomBytes(4).toString("hex")}@test.invalid`;
+const registrationTrial = process.env.MFA_REGISTER_STUDENT === "true";
+const fixtureId = `${Date.now()}-${randomBytes(4).toString("hex")}`;
+const email = `mfa-audit-${fixtureId}@${registrationTrial ? "example.com" : "test.invalid"}`;
+const studentId = `REG-${fixtureId}`;
 const password = `Audit!${randomBytes(24).toString("base64url")}9a`;
 let id, browser;
 try {
+  browser = await chromium.launch({ ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
+  const context = await browser.newContext(); // No video, traces or saved authentication state.
+  if (process.env.VERCEL_AUTOMATION_BYPASS_SECRET && base.hostname.endsWith(".vercel.app")) await context.request.get(base.href, { headers: { "x-vercel-protection-bypass": process.env.VERCEL_AUTOMATION_BYPASS_SECRET, "x-vercel-set-bypass-cookie": "true" } });
+  const page = await context.newPage(); page.setDefaultTimeout(45000);
+  if (registrationTrial) {
+    async function fillRegistration(target, address) {
+      await target.goto(new URL("/register", base).href);
+      await target.getByLabel("Full name").fill("Disposable Registration Verification");
+      await target.getByLabel(/Student ID/).fill(studentId);
+      await target.getByLabel("Year / Section").fill("2nd Year / Audit");
+      await target.getByLabel("Group number").fill("Audit");
+      await target.getByLabel("Contact number").fill("09000000000");
+      await target.getByLabel(/Email address/).fill(address);
+      await target.getByLabel("Password", { exact: true }).fill(password);
+    }
+    await fillRegistration(page, email);
+    await page.getByRole("button", { name: "Create account", exact: true }).click();
+    await page.waitForURL("**/two-factor");
+    const users = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    assert.equal(users.error, null); id = users.data.users.find(user => user.email === email)?.id;
+    assert(id, "Actual registration creates the disposable Auth account");
+    const profile = await admin.from("profiles").select("role,status,data_scope,student_id").eq("id", id).single();
+    assert.equal(profile.error, null);
+    assert.deepEqual(profile.data, { role: "student", status: "pending", data_scope: "operational", student_id: studentId });
+    console.log("PASS: actual registration form creates a pending operational student and establishes sign-in");
+    const duplicate = await browser.newContext();
+    if (process.env.VERCEL_AUTOMATION_BYPASS_SECRET && base.hostname.endsWith(".vercel.app")) await duplicate.request.get(base.href, { headers: { "x-vercel-protection-bypass": process.env.VERCEL_AUTOMATION_BYPASS_SECRET, "x-vercel-set-bypass-cookie": "true" } });
+    const duplicatePage = await duplicate.newPage(); duplicatePage.setDefaultTimeout(45000);
+    await fillRegistration(duplicatePage, email.replace("mfa-audit-", "duplicate-audit-"));
+    await duplicatePage.getByRole("button", { name: "Create account", exact: true }).click();
+    await duplicatePage.getByRole("alert").filter({ hasText: "This Student ID already has an account" }).waitFor();
+    assert.equal(await duplicatePage.getByLabel("Full name").inputValue(), "Disposable Registration Verification");
+    assert.equal(await duplicatePage.getByLabel(/Student ID/).inputValue(), studentId);
+    assert.equal(await duplicatePage.getByLabel("Password", { exact: true }).inputValue(), "", "Password is cleared on rejected registration");
+    assert.equal(await duplicatePage.getByRole("link", { name: "Go to sign in" }).getAttribute("href"), "/login");
+    for (const width of [320, 390, 1366]) {
+      await duplicatePage.setViewportSize({ width, height: 900 });
+      assert(await duplicatePage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "Registration error fits the viewport");
+    }
+    await duplicate.close();
+    console.log("PASS: duplicate Student ID explains recovery, preserves details, clears password and fits mobile/desktop");
+  } else {
   const created = await admin.auth.admin.createUser({ email, password, email_confirm: true,
     user_metadata: { full_name: "Disposable MFA Verification" }, app_metadata: { labtrack_staff_role: "custodian", labtrack_data_scope: "operational" } });
   assert.equal(created.error, null, "Disposable Auth account creation"); id = created.data.user.id;
   const prepared = await admin.from("profiles").update({ role: "custodian", data_scope: "operational", student_id: null, status: "active", must_change_password: false }).eq("id", id).select("id,data_scope,role").single();
   assert.equal(prepared.error, null, "Prepare only the new fixture profile"); assert.equal(prepared.data.data_scope, "operational"); assert.equal(prepared.data.role, "custodian");
+  }
   if (process.env.MFA_REQUIRE_DATABASE_GATE === "true") {
     const passwordOnly = createClient(url, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
     assert.equal((await passwordOnly.auth.signInWithPassword({ email, password })).error, null);
@@ -45,10 +91,6 @@ try {
     await passwordOnly.auth.signOut({ scope: "local" });
     console.log("PASS: hosted database directly rejects AAL1 RPC and inventory access");
   }
-  browser = await chromium.launch({ ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
-  const context = await browser.newContext(); // No video, traces, screenshots or saved authentication state.
-  if (process.env.VERCEL_AUTOMATION_BYPASS_SECRET && base.hostname.endsWith(".vercel.app")) await context.request.get(base.href, { headers: { "x-vercel-protection-bypass": process.env.VERCEL_AUTOMATION_BYPASS_SECRET, "x-vercel-set-bypass-cookie": "true" } });
-  const page = await context.newPage(); page.setDefaultTimeout(45000);
   async function signIn() {
     await page.goto(new URL("/login", base).href); await page.getByLabel("Email address").fill(email); await page.getByLabel("Password", { exact: true }).fill(password);
     await page.getByRole("button", { name: "Sign in", exact: true }).click(); await page.waitForURL("**/two-factor");
@@ -88,6 +130,11 @@ try {
   console.log("PASS: subsequent sign-in, invalid-code rejection, verified backup, device replacement and last-factor guard");
 } finally {
   await browser?.close();
+  if (registrationTrial && !id) {
+    const users = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    assert.equal(users.error, null, "Look up only this disposable registration for cleanup");
+    id = users.data.users.find(user => user.email === email)?.id;
+  }
   if (id) { const deleted = await admin.auth.admin.deleteUser(id); assert.equal(deleted.error, null, "Disposable account cleanup"); }
   assert.deepEqual(await counter(), before, "Existing hosted record counts remain unchanged");
   console.log("PASS: disposable account removed; hosted profile/tool/transaction/item counts unchanged");

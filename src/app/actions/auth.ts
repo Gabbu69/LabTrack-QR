@@ -14,6 +14,8 @@ import { normalizeProfilePhoto } from "@/lib/profile-photo";
 import { loginSchema, passwordSchema, registrationSchema, profileSchema } from "@/lib/validation";
 import { requiresMfa } from "@/lib/mfa";
 import { secondFactorPath, sendEmailOtp } from "@/lib/email-otp";
+import { registrationErrorMessage, signInErrorMessage } from "@/lib/auth-errors";
+import { DUPLICATE_STUDENT_ID, studentIdInUse, type RegistrationState } from "@/lib/registration";
 
 function value(formData: FormData, key: string) { return String(formData.get(key) ?? ""); }
 function go(path: string, key: "error" | "message", message: string): never {
@@ -30,8 +32,7 @@ export async function loginAction(formData: FormData) {
   if (!allowed) go("/login", "error", "Too many sign-in attempts. Please wait 15 minutes before trying again.");
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
-  if (error?.code === "email_not_confirmed") go("/login", "error", "Confirm your email using the link in your inbox, then sign in again.");
-  if (error || !data.user) go("/login", "error", "Email or password is incorrect.");
+  if (error || !data.user) go("/login", "error", signInErrorMessage(error ?? {}));
   try { await clearLoginAttempts(parsed.data.email); }
   catch { await supabase.auth.signOut(); go("/login", "error", "Sign-in is temporarily unavailable. Please try again later."); }
   const { data: profile } = await supabase.from("profiles").select("status,must_change_password,data_scope").eq("id", data.user.id).maybeSingle();
@@ -55,21 +56,32 @@ export async function loginAction(formData: FormData) {
   redirect(profile.must_change_password ? "/change-password" : "/dashboard");
 }
 
-export async function registerAction(formData: FormData) {
-  if (!isSupabaseConfigured()) go("/register", "error", "Supabase is not configured yet. Follow SETUP.md to connect the project.");
+export async function registerAction(formData: FormData): Promise<RegistrationState> {
+  if (!isSupabaseConfigured()) return { error: "Registration is temporarily unavailable. Contact the laboratory custodian." };
   const parsed = registrationSchema.safeParse({
     email: value(formData, "email"), password: value(formData, "password"), fullName: value(formData, "full_name"),
     studentId: value(formData, "student_id"), yearSection: value(formData, "year_section"),
     groupNumber: value(formData, "group_number"), contactNumber: value(formData, "contact_number"),
   });
-  if (!parsed.success) go("/register", "error", parsed.error.issues[0]?.message ?? "Check the registration form.");
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the registration form.", field: parsed.error.issues[0]?.path[0]?.toString() };
+  try {
+    if (!await consumeLoginAttempt(`registration:${parsed.data.email}`)) return { error: "Too many registration attempts. Wait 15 minutes before trying again. Your details are kept below." };
+    if (await studentIdInUse(parsed.data.studentId)) return { error: DUPLICATE_STUDENT_ID, field: "studentId" };
+  } catch { return { error: "Registration is temporarily unavailable. Your details are kept below. Please try again later." }; }
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: { data: { full_name: parsed.data.fullName, student_id: parsed.data.studentId, year_section: parsed.data.yearSection, group_number: parsed.data.groupNumber, contact_number: parsed.data.contactNumber } },
   });
-  if (error) go("/register", "error", error.message.includes("registered") ? "An account already uses this email." : "Registration could not be completed. Try again.");
+  if (error) {
+    // The unique index also handles races after the preflight availability check.
+    if (error.status && error.status >= 500) {
+      try { if (await studentIdInUse(parsed.data.studentId)) return { error: DUPLICATE_STUDENT_ID, field: "studentId" }; }
+      catch { /* Return the safe provider error below. */ }
+    }
+    return { error: registrationErrorMessage(error) };
+  }
   if (data.session) {
     // Establish password proof before sending the inbox verification code.
     const loginForm = new FormData();
@@ -81,6 +93,10 @@ export async function registerAction(formData: FormData) {
   go("/login", "message", data.session
     ? "Registration received. A custodian must approve your account before you can borrow tools."
     : "Registration received. Check your inbox to confirm your email, then sign in. A custodian must also approve your account before you can borrow tools.");
+}
+
+export async function registerFormAction(_previous: RegistrationState, formData: FormData): Promise<RegistrationState> {
+  return registerAction(formData);
 }
 
 export async function changePasswordAction(formData: FormData) {

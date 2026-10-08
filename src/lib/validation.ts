@@ -6,11 +6,11 @@ export const loginSchema = z.object({
 });
 
 export const registrationSchema = loginSchema.extend({
-  fullName: z.string().trim().min(2).max(120),
-  studentId: z.string().trim().min(2).max(40),
-  yearSection: z.string().trim().min(2).max(60),
-  groupNumber: z.string().trim().min(1).max(30),
-  contactNumber: z.string().trim().min(7).max(30),
+  fullName: z.string().trim().min(2, "Enter your full name.").max(120),
+  studentId: z.string().trim().min(2, "Enter your Student ID.").max(40),
+  yearSection: z.string().trim().min(2, "Enter your year and section.").max(60),
+  groupNumber: z.string().trim().min(1, "Enter your group number.").max(30),
+  contactNumber: z.string().trim().min(7, "Enter a valid contact number.").max(30),
 });
 
 export const passwordSchema = z.object({
