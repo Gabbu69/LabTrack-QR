@@ -1,6 +1,8 @@
-# Dependency audit decision - October 3, 2026
+# Dependency audit decision - October 8, 2026
 
 Next.js and its matching ESLint configuration are pinned to 16.3.8. The lockfile also updates affected brace-expansion and undici versions. The production dependency audit must report no high or critical findings.
+
+The October 8 release updates sharp to 0.35.5 for [GHSA-wq5f-xc86-pv6w](https://github.com/advisories/GHSA-wq5f-xc86-pv6w) and source-map-js to 1.2.2 for [GHSA-68fv-2mgg-jv7q](https://github.com/advisories/GHSA-68fv-2mgg-jv7q). Both production advisories are resolved in the release lockfile.
 
 One advisory remains without an available patched braces release: [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), stack exhaustion from deeply nested glob patterns. The installed braces 3.0.3 is used only by development lint tooling through micromatch, fast-glob, @next/eslint-plugin-next and eslint-config-next. These five affected package entries describe one underlying advisory. Application code does not pass user input to these development packages.
 
