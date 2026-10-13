@@ -2,10 +2,10 @@
 import { createElement } from 'react';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
-const scan = vi.hoisted(() => ({ callback: undefined as undefined | ((result: {getText: () => string}) => void), stop: vi.fn() }));
-vi.mock('@zxing/browser', () => ({ BrowserQRCodeReader: class { static releaseAllStreams() {} async decodeFromConstraints(_options: unknown, _video: unknown, callback: typeof scan.callback) { scan.callback=callback; return {stop:scan.stop}; } } }));
+const scan = vi.hoisted(() => ({ callback: undefined as undefined | ((result: {getText: () => string}) => void), stop: vi.fn(), decodeImage: vi.fn() }));
+vi.mock('@zxing/browser', () => ({ BrowserQRCodeReader: class { static releaseAllStreams() {} async decodeFromConstraints(_options: unknown, _video: unknown, callback: typeof scan.callback) { scan.callback=callback; return {stop:scan.stop}; } decodeFromImageUrl(url: string) { return scan.decodeImage(url); } } }));
 import { QrScanner } from '@/components/scanner/qr-scanner';
-afterEach(() => { cleanup(); scan.callback=undefined; vi.clearAllMocks(); });
+afterEach(() => { cleanup(); scan.callback=undefined; scan.decodeImage.mockReset(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
 it('uses the current borrower callback after props change while camera stays on', async () => {
  const old=vi.fn(); const current=vi.fn(); const view=render(createElement(QrScanner,{expected:'tool',onScan:old}));
  await act(async()=>{fireEvent.click(screen.getByRole('button',{name:'Start rear camera'}));});
@@ -34,4 +34,52 @@ it('advertises only supported raster image formats and rejects an SVG upload bef
  await act(async()=>{fireEvent.change(upload,{target:{files:[new File(['<svg/>'],'qr.svg',{type:'image/svg+xml'})]}});});
  expect(screen.getByRole('alert').textContent).toContain('Choose a JPEG, PNG, or WebP QR image no larger than 5 MB.');
  expect(onScan).not.toHaveBeenCalled();
+});
+
+it('allows the same QR image after a failed lookup while preserving the duplicate-scan delay', async () => {
+ const onScan=vi.fn().mockRejectedValueOnce(new Error('Connection interrupted')).mockResolvedValue(undefined);
+ const now=vi.spyOn(Date,'now').mockReturnValue(10_000);
+ vi.stubGlobal('URL',Object.assign(class extends URL {},{createObjectURL:vi.fn(()=> 'blob:qr-image'),revokeObjectURL:vi.fn()}));
+ scan.decodeImage.mockResolvedValue({getText:()=> 'TOOL-001'});
+ render(createElement(QrScanner,{expected:'tool',onScan}));
+ const upload=screen.getByLabelText('Upload QR image') as HTMLInputElement;
+ const file=new File(['qr image'],'tool-qr.png',{type:'image/png'});
+ async function selectSameImage() {
+  // Model the selected filename: a native picker suppresses same-file changes until this is cleared.
+  Object.defineProperty(upload,'value',{configurable:true,writable:true,value:'C:\\fakepath\\tool-qr.png'});
+  await act(async()=>{fireEvent.change(upload,{target:{files:[file]}});});
+  expect(upload.value).toBe('');
+ }
+ await selectSameImage();
+ expect(onScan).toHaveBeenCalledOnce();
+ expect(screen.getByRole('alert').textContent).toContain('Please try again.');
+ now.mockReturnValue(11_000);
+ await selectSameImage();
+ expect(onScan).toHaveBeenCalledOnce();
+ now.mockReturnValue(11_800);
+ await selectSameImage();
+ expect(onScan).toHaveBeenCalledTimes(2);
+ expect(onScan).toHaveBeenLastCalledWith('TOOL-001');
+ expect(scan.decodeImage).toHaveBeenCalledTimes(3);
+ expect(URL.revokeObjectURL).toHaveBeenCalledTimes(3);
+ expect(screen.queryByRole('alert')).toBeNull();
+});
+
+it('does not process image reuploads while a scan is pending or the scanner is disabled', async () => {
+ let finish!:()=>void;
+ const onScan=vi.fn(()=>new Promise<void>(resolve=>{finish=resolve;}));
+ vi.stubGlobal('URL',Object.assign(class extends URL {},{createObjectURL:vi.fn(()=> 'blob:qr-image'),revokeObjectURL:vi.fn()}));
+ scan.decodeImage.mockResolvedValue({getText:()=> 'TOOL-001'});
+ const view=render(createElement(QrScanner,{expected:'tool',onScan}));
+ const upload=screen.getByLabelText('Upload QR image') as HTMLInputElement;
+ const file=new File(['qr image'],'tool-qr.png',{type:'image/png'});
+ await act(async()=>{fireEvent.change(upload,{target:{files:[file]}});});
+ await act(async()=>{fireEvent.change(upload,{target:{files:[file]}});});
+ expect(onScan).toHaveBeenCalledOnce();
+ await act(async()=>{finish();});
+ view.rerender(createElement(QrScanner,{expected:'tool',onScan,disabled:true}));
+ expect(upload.disabled).toBe(true);
+ await act(async()=>{fireEvent.change(upload,{target:{files:[file]}});});
+ expect(scan.decodeImage).toHaveBeenCalledTimes(2);
+ expect(onScan).toHaveBeenCalledOnce();
 });

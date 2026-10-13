@@ -28,11 +28,18 @@ function totp(secret) {
   return String((hash.readUInt32BE(offset) & 0x7fffffff) % 1000000).padStart(6, "0");
 }
 const before = await counter();
+const existingCustodians = await admin.from("profiles").select("id", { head: true, count: "exact" })
+  .eq("role", "custodian").eq("status", "active").eq("data_scope", "operational");
+assert.equal(existingCustodians.error, null, "Verify safe cleanup of the disposable staff fixture");
+assert(existingCustodians.count > 0, "An existing active operational custodian is required before creating a disposable staff fixture");
 const registrationTrial = process.env.MFA_REGISTER_STUDENT === "true";
+const temporaryPasswordTrial = process.env.MFA_TEMPORARY_PASSWORD === "true";
+if (registrationTrial && temporaryPasswordTrial) throw new Error("Run student registration and temporary staff trials separately.");
 const fixtureId = `${Date.now()}-${randomBytes(4).toString("hex")}`;
 const email = `mfa-audit-${fixtureId}@${registrationTrial ? "example.com" : "test.invalid"}`;
 const studentId = `REG-${fixtureId}`;
 const password = `Audit!${randomBytes(24).toString("base64url")}9a`;
+let signInPassword = password;
 let id, browser;
 try {
   browser = await chromium.launch({ ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
@@ -80,7 +87,7 @@ try {
   const created = await admin.auth.admin.createUser({ email, password, email_confirm: true,
     user_metadata: { full_name: "Disposable MFA Verification" }, app_metadata: { labtrack_staff_role: "custodian", labtrack_data_scope: "operational" } });
   assert.equal(created.error, null, "Disposable Auth account creation"); id = created.data.user.id;
-  const prepared = await admin.from("profiles").update({ role: "custodian", data_scope: "operational", student_id: null, status: "active", must_change_password: false }).eq("id", id).select("id,data_scope,role").single();
+  const prepared = await admin.from("profiles").update({ role: "custodian", data_scope: "operational", student_id: null, status: "active", must_change_password: temporaryPasswordTrial }).eq("id", id).select("id,data_scope,role").single();
   assert.equal(prepared.error, null, "Prepare only the new fixture profile"); assert.equal(prepared.data.data_scope, "operational"); assert.equal(prepared.data.role, "custodian");
   }
   if (process.env.MFA_REQUIRE_DATABASE_GATE === "true") {
@@ -92,7 +99,7 @@ try {
     console.log("PASS: hosted database directly rejects AAL1 RPC and inventory access");
   }
   async function signIn() {
-    await page.goto(new URL("/login", base).href); await page.getByLabel("Email address").fill(email); await page.getByLabel("Password", { exact: true }).fill(password);
+    await page.goto(new URL("/login", base).href); await page.getByLabel("Email address").fill(email); await page.getByLabel("Password", { exact: true }).fill(signInPassword);
     await page.getByRole("button", { name: "Sign in", exact: true }).click(); await page.waitForURL("**/two-factor");
   }
   async function setup(name) {
@@ -105,7 +112,21 @@ try {
   await signIn();
   const session = await context.request.get(new URL("/api/session", base).href); assert.equal(session.status(), 403, "AAL1 cannot authorize portal APIs");
   await page.goto(new URL("/dashboard", base).href); await page.waitForURL("**/two-factor");
-  const secret = await setup("Audit phone"); await page.waitForURL("**/dashboard");
+  const secret = await setup("Audit phone");
+  if (temporaryPasswordTrial) {
+    await page.waitForURL("**/change-password");
+    const protectedRecords = await context.request.get(new URL("/api/reports/transactions.csv", base).href);
+    assert.equal(protectedRecords.status(), 403, "AAL2 alone does not bypass temporary-password restriction on records");
+    assert.equal((await protectedRecords.json()).code, "PASSWORD_CHANGE_REQUIRED");
+    const changing = await admin.from("profiles").select("must_change_password").eq("id", id).single();
+    assert.equal(changing.error, null); assert.equal(changing.data.must_change_password, true);
+    signInPassword = `Private!${randomBytes(24).toString("base64url")}8b`;
+    await page.getByLabel("New password", { exact: true }).fill(signInPassword);
+    await page.getByLabel("Confirm password", { exact: true }).fill(signInPassword);
+    await page.getByRole("button", { name: "Save password and continue", exact: true }).click();
+    console.log("PASS: operational temporary staff verify their authenticator before replacing the temporary password");
+  }
+  await page.waitForURL("**/dashboard");
   assert.equal((await context.request.get(new URL("/api/session", base).href)).status(), 204);
   console.log("PASS: real hosted initial enrollment, AAL1 rejection and AAL2 portal access");
   // A new browser forces a fresh password-only session.
@@ -113,7 +134,7 @@ try {
   if (process.env.VERCEL_AUTOMATION_BYPASS_SECRET && base.hostname.endsWith(".vercel.app")) await second.request.get(base.href, { headers: { "x-vercel-protection-bypass": process.env.VERCEL_AUTOMATION_BYPASS_SECRET, "x-vercel-set-bypass-cookie": "true" } });
   // Reuse helpers through a new page while closing the first authenticated context.
   const login = await second.newPage(); login.setDefaultTimeout(45000);
-  await login.goto(new URL("/login", base).href); await login.getByLabel("Email address").fill(email); await login.getByLabel("Password", { exact: true }).fill(password);
+  await login.goto(new URL("/login", base).href); await login.getByLabel("Email address").fill(email); await login.getByLabel("Password", { exact: true }).fill(signInPassword);
   await login.getByRole("button", { name: "Sign in", exact: true }).click(); await login.waitForURL("**/two-factor");
   const current = totp(secret); const invalid = String((Number(current) + 1) % 1000000).padStart(6, "0");
   await login.getByLabel("6-digit code", { exact: true }).fill(invalid); await login.getByRole("button", { name: "Verify and continue", exact: true }).click();

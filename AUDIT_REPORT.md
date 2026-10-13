@@ -1,5 +1,7 @@
 # LabTrack QR client readiness audit
 
+For the current source and hosted audit, read [FINAL_AUDIT_2026-10-13.md](FINAL_AUDIT_2026-10-13.md). The assessment below is retained as historical evidence from 4 October.
+
 Assessment date: **4 October 2026**. Scope: the existing three-role, single-laboratory thesis application, intended for a defense and small supervised pilot using a phone camera and laptop. Implementation reviewed and tested: `6849a0fd54bfb5b529d390425318732835b76e14`. Backend selected by the owner: Gabs Project (`tsusogeqjduyahoskteb`). No passwords, tokens, authenticator setup secrets or server keys are included here.
 
 **Current decision: implementation and compatible Preview checks passed; pilot acceptance remains pending.** The two reproduced return defects are fixed and pass disposable PostgreSQL regressions. Both reviewed live migrations are installed; the compatible Preview passed three-role HTTP/browser, actual QR download decoding, repeated sign-in, scoped report and disposable operational MFA checks. Production tracking is recorded in [VERIFICATION.md](VERIFICATION.md). Full disposable Supabase browser workflows, the client's actual devices and a hosted recovery exercise remain separate acceptance gates.

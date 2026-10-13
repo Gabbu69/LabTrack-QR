@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { apiRoute, databaseFailure } from "@/lib/api";
 import { createClient } from "@/lib/supabase/server";
+import { WORKFLOW_ITEM_LIMIT } from "@/lib/workflow";
 
 const itemSchema = z.object({ itemId: z.uuid({ error: "Reload the borrower's custody before returning this tool." }), toolToken: z.uuid(), condition: z.enum(["good", "fair", "damaged"]), note: z.string().trim().max(500), unavailable: z.boolean() });
-const schema = z.object({ borrowerToken: z.uuid(), returnedItems: z.array(itemSchema).min(1).max(100) }).refine((value) => new Set(value.returnedItems.map((item) => item.toolToken)).size === value.returnedItems.length && new Set(value.returnedItems.map((item) => item.itemId)).size === value.returnedItems.length, { message: "Duplicate returned tools are not allowed." });
+const schema = z.object({ borrowerToken: z.uuid(), returnedItems: z.array(itemSchema).min(1).max(WORKFLOW_ITEM_LIMIT, "Confirm no more than 100 tools in each return.") }).refine((value) => new Set(value.returnedItems.map((item) => item.toolToken)).size === value.returnedItems.length && new Set(value.returnedItems.map((item) => item.itemId)).size === value.returnedItems.length, { message: "Duplicate returned tools are not allowed." });
 
 export const POST = apiRoute({ roles: ["custodian"], active: true }, async (request) => {
   const parsed = schema.safeParse(await request.json().catch(() => null));

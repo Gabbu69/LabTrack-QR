@@ -23,6 +23,7 @@ export type Database = {
           full_name: string
           group_number: string | null
           id: string
+          mfa_operation_id: string | null
           password_operation_id: string | null
           must_change_password: boolean
           photo_path: string | null
@@ -41,6 +42,7 @@ export type Database = {
           full_name: string
           group_number?: string | null
           id: string
+          mfa_operation_id?: string | null
           password_operation_id?: string | null
           must_change_password?: boolean
           photo_path?: string | null
@@ -59,6 +61,7 @@ export type Database = {
           full_name?: string
           group_number?: string | null
           id?: string
+          mfa_operation_id?: string | null
           password_operation_id?: string | null
           must_change_password?: boolean
           photo_path?: string | null

@@ -7,6 +7,7 @@ Target: one laboratory, three roles, phone camera and laptop. Complete this reco
 | Field | Client/owner entry |
 | --- | --- |
 | Date, tested source commit and exact deployment | Pending |
+| Deployed personal verification mode | Authenticator-default registration text observed 9 October 2026; confirm at acceptance |
 | Client phone model, OS and browser | Pending |
 | Client laptop and browser | Pending |
 | Responsible owner and alternate | Pending |
@@ -16,9 +17,10 @@ Target: one laboratory, three roles, phone camera and laptop. Complete this reco
 ## Device and workflow checks
 
 - [ ] All three roles can sign in, refresh, navigate and log out. Student and instructor attempts to perform custodian operations are denied.
-- [ ] A personal student can register, follow the actual configured email-confirmation behavior, enroll an authenticator, wait for approval and access only their own records after approval.
-- [ ] Temporary staff verify an authenticator and replace their temporary password before laboratory access. A password reset retains authenticator protection.
-- [ ] Add and verify a backup authenticator. Confirm the owner can follow the lost-device recovery procedure without disabling MFA globally.
+- [ ] A personal student presses Create account, follows the actual configured email-confirmation and authenticator/email-code path, sees pending approval, and becomes eligible for checkout only after approval. Their records remain private.
+- [ ] If email-code login is enabled: the hosted migration and sender settings are verified, a consenting tester receives the code in their own inbox, and invalid/expired/reused codes are rejected. Existing authenticator accounts still require their authenticator. Otherwise record this conditional check as not applicable, not passed.
+- [ ] Temporary staff complete the configured verification step and replace their temporary password before laboratory access. A password reset retains enrolled authenticator protection.
+- [ ] For authenticator accounts, add and verify a backup authenticator. Confirm the owner can follow the lost-device recovery procedure without disabling MFA globally.
 - [ ] Phone camera permission works over HTTPS; student and printed tool QR labels resolve correctly in the intended lighting.
 - [ ] Downloaded student/tool SVGs print and scan correctly. JPEG/PNG/WebP image upload and typed codes work when camera permission is denied.
 - [ ] Checkout identifies the correct approved student and physical tools; repeated scans do not add duplicate entries.
@@ -38,3 +40,9 @@ Target: one laboratory, three roles, phone camera and laptop. Complete this reco
 - [ ] Full browser mutations passed on a separate disposable Supabase backend. Shared demonstration review and isolated SQL tests are recorded separately.
 
 **Pilot decision:** Pending. Any unchecked workflow, device, disposable-backend or recovery requirement remains an acceptance gap. Record the reason and responsible person; do not convert a pending observation into a passing result.
+
+## Thesis demonstration acceptance
+
+This is separate from permission to enter real operational records. Use fictional records, verify all three demo sign-ins, rehearse two-tool checkout/partial/full returns and missing recovery, compare CSV/A4 reports, and test the printed labels and fallback on the client's actual phone/laptop. Record observed failures and responsible follow-up without filling in participant evaluation results.
+
+Target rehearsal: 13 November 2026. Target accepted handoff: 17 November 2026. Intended use: around 20 November onward. Actual acceptance date, named hosting owner, agreed hosting duration and 30-day support end date remain to be recorded with the client.

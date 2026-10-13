@@ -48,4 +48,8 @@ Sign in as the demo instructor. Show the read-only dashboard, inventory, student
 
 If a camera is unreliable under defense-room lighting, switch to JPEG/PNG/WebP QR-image upload, a USB scanner, or typed fictional codes. If a return selection is stale, reload custody and rescan. Check history after a connection interruption before retrying a confirmation.
 
-Shared demo accounts are exempt from personal authenticator setup. Demonstrate operational two-factor onboarding separately using an approved disposable test account; do not describe demo sign-in as evidence that a phone authenticator was tested.
+Shared demo accounts are exempt from personal sign-in verification. Demonstrate personal onboarding separately using an approved disposable test account and the actual deployed verification method. The hosted registration page checked on 9 October 2026 shows authenticator-default wording; optional email-code login must be enabled and independently verified before demonstrating inbox delivery. An enrolled authenticator remains required. Demo sign-in does not establish a phone authenticator or inbox-delivery test.
+
+## Client rehearsal
+
+Proposed dates: rehearsal on 13 November 2026, accepted handoff on 17 November, and client use around 20 November onward. Reserve one 60-minute session: 10 minutes for access and role scope, 15 for QR preparation/scanner fallback, 20 for checkout/return/missing practice, 10 for the seven-minute defense run and reports, and 5 for questions and the pending acceptance record. Agree the actual dates with the client.

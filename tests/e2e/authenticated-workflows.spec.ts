@@ -1,9 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { expect, test, type Page } from "@playwright/test";
+import { finishSignInVerification } from "../support/sign-in-verification";
 
 // Mutation suites are opt-in and fail closed for the shared Gabs backend.
 const isolated = process.env.E2E_ISOLATED_DATABASE === "true" && !!process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("tsusogeqjduyahoskteb");
 test.beforeEach(() => { test.skip(!isolated, "Mutations require disposable fixtures on an isolated backend."); });
+test.use({ trace: "off", screenshot: "off" }); // Personal verification secrets must never enter artifacts.
+test.beforeEach(() => { test.skip(process.env.EMAIL_OTP_ENABLED === "true" && !process.env.E2E_MAILPIT_URL, "Email-code mutation trials require a dedicated disposable test inbox."); });
 const demoPassword = process.env.E2E_DEMO_PASSWORD;
 const demoCustodianEmail = process.env.E2E_DEMO_CUSTODIAN_EMAIL ?? "custodian.demo@labtrackqr2026.com";
 const demoInstructorEmail = process.env.E2E_DEMO_INSTRUCTOR_EMAIL ?? "instructor.demo@labtrackqr2026.com";
@@ -11,12 +14,13 @@ const demoStudentEmail = process.env.E2E_DEMO_STUDENT_EMAIL ?? "jordan.demo@labt
 const operationalCustodianEmail = process.env.E2E_OPERATIONAL_CUSTODIAN_EMAIL;
 const operationalCustodianPassword = process.env.E2E_OPERATIONAL_CUSTODIAN_PASSWORD;
 
-async function login(page: Page, email: string, password: string) {
+async function login(page: Page, email: string, password: string, authenticatorSecret?: string) {
+  const sentAfter = Date.now();
   await page.goto("/login");
   await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await page.waitForURL(/\/(dashboard|change-password)/);
+  return finishSignInVerification(page, email, sentAfter, authenticatorSecret);
 }
 
 async function resetDemo(page: Page) {
@@ -198,11 +202,17 @@ test.describe("authenticated release workflows", () => {
     await page.getByLabel("Group number").fill("Group E2E");
     await page.getByLabel("Contact number").fill("09170000000");
     await page.getByLabel("Email address").fill(email);
-    await page.getByLabel("Password").fill(password);
-    await page.getByRole("button", { name: "Submit registration" }).click();
-    await expect(page).toHaveURL(/\/login\?message=/);
+    await page.getByLabel("Password", { exact: true }).fill(password);
+    const sentAfter = Date.now();
+    await page.getByRole("button", { name: "Create account", exact: true }).click();
+    await page.waitForURL(/\/(login|two-factor|verify-email)(?:\?|$)/);
+    // This fixture requires auto-confirmed test email; real confirmation is a separate inbox trial.
+    expect(new URL(page.url()).pathname, "Use an auto-confirmed disposable backend for this operational journey.").not.toBe("/login");
+    const studentAuthenticator = await finishSignInVerification(page, email, sentAfter);
+    await expect(page.getByText("Approval pending", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Log Out" }).click();
 
-    await login(page, operationalCustodianEmail!, operationalCustodianPassword!);
+    await login(page, operationalCustodianEmail!, operationalCustodianPassword!, process.env.E2E_OPERATIONAL_CUSTODIAN_TOTP_SECRET);
     await page.goto("/users");
     const row = page.locator("article.user-row").filter({ hasText: email });
     await expect(row).toBeVisible();
@@ -210,7 +220,7 @@ test.describe("authenticated release workflows", () => {
     await expect(page.getByText("Account status updated.")).toBeVisible();
     await page.getByRole("button", { name: "Log Out" }).click();
 
-    await login(page, email, password);
+    await login(page, email, password, studentAuthenticator);
     await expect(page.getByRole("heading", { name: "Welcome, E2E Student Mechanic" })).toBeVisible();
   });
 });

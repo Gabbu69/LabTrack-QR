@@ -1,5 +1,7 @@
 # LabTrack QR release verification
 
+For the current source and hosted audit, read [FINAL_AUDIT_2026-10-13.md](FINAL_AUDIT_2026-10-13.md). The checkpoint below is retained as historical evidence from 4 October.
+
 Checkpoint: **4 October 2026**. Implementation tested: `6849a0fd54bfb5b529d390425318732835b76e14`. Owner-selected backend: Gabs Project (`tsusogeqjduyahoskteb`). [AUDIT_REPORT.md](AUDIT_REPORT.md) explains the findings; [CLIENT_ACCEPTANCE.md](CLIENT_ACCEPTANCE.md) records the client/device and recovery gates.
 
 **Source, automated checks and the compatible Preview passed. Live migrations are applied; Production release tracking is being completed. Pilot acceptance remains pending.** A passing local test or CI run does not prove that the target database has the migrations or that Production serves the compatible application.

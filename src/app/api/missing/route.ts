@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { apiRoute, databaseFailure } from "@/lib/api";
 import { createClient } from "@/lib/supabase/server";
+import { WORKFLOW_ITEM_LIMIT } from "@/lib/workflow";
 
-const schema = z.object({ itemIds: z.array(z.uuid()).min(1).max(100), note: z.string().trim().min(3).max(500) }).refine((value) => new Set(value.itemIds).size === value.itemIds.length, { message: "Duplicate items are not allowed." });
+const schema = z.object({ itemIds: z.array(z.uuid()).min(1).max(WORKFLOW_ITEM_LIMIT, "Mark no more than 100 tools missing at a time."), note: z.string().trim().min(3).max(500) }).refine((value) => new Set(value.itemIds).size === value.itemIds.length, { message: "Duplicate items are not allowed." });
 
 export const POST = apiRoute({ roles: ["custodian"], active: true }, async (request) => {
   const parsed = schema.safeParse(await request.json().catch(() => null));

@@ -26,6 +26,7 @@ const mocks = vi.hoisted(() => ({
   deleteCookie: vi.fn(),
   signSession: vi.fn(),
   revalidate: vi.fn(),
+  serializeOperation: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -33,6 +34,7 @@ vi.mock("@/lib/auth", () => ({
   requireProfile: mocks.requireProfile,
 }));
 vi.mock("@/lib/login-limit", () => ({ consumeMfaAttempt: mocks.consumeAttempt, clearMfaVerificationAttempts: mocks.clearVerification }));
+vi.mock("@/lib/mfa-operation", () => ({ serializeMfaOperation: mocks.serializeOperation }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ set: mocks.setCookie, delete: mocks.deleteCookie }) }));
 vi.mock("next/navigation", () => ({ redirect: (path: string): never => { throw new Error(`REDIRECT:${path}`); } }));
@@ -77,6 +79,7 @@ beforeEach(() => {
   };
   mocks.requireProfile.mockResolvedValue(mocks.context.profile);
   mocks.consumeAttempt.mockResolvedValue(true);
+  mocks.serializeOperation.mockImplementation(async (_userId, mutation) => mutation());
   mocks.clearVerification.mockReset().mockResolvedValue(undefined);
   mocks.createClient.mockResolvedValue({ auth: {
     getClaims: mocks.claims, refreshSession: mocks.refresh,
@@ -94,6 +97,19 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); });
 
 describe("MFA action identity and input boundary", () => {
+  it.each([
+    [enrollMfaAction, {}],
+    [verifyMfaAction, { factor_id: firstId, code: "123456" }],
+    [removeMfaAction, { factor_id: firstId }],
+  ] as const)("does not reach the provider while another factor mutation holds the user lease %#", async (action, fields) => {
+    mocks.context!.aal = "aal2";
+    mocks.serializeOperation.mockResolvedValueOnce({ error: "Another authenticator update is in progress." });
+    expect((await action({}, form(fields))).error).toContain("in progress");
+    if (action === removeMfaAction) expect(mocks.serializeOperation).toHaveBeenCalledWith(userId, expect.any(Function), { requirePrivatePassword: true });
+    else expect(mocks.serializeOperation).toHaveBeenCalledWith(userId, expect.any(Function));
+    expect(mocks.createClient).not.toHaveBeenCalled();
+  });
+
   it.each([
     [enrollMfaAction, {}],
     [verifyMfaAction, { factor_id: firstId, code: "123456" }],

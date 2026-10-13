@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import pg from "pg";
 import { verifyFixtureRestore } from "./test-restore.mjs";
 import { verifyReturnRaces } from "./test-return-races.mjs";
+import { verifyAccountSecurityRaces } from "./test-account-security-races.mjs";
 
 // No environment-supplied database URL is accepted: destructive tests stay local.
 const port = await new Promise((resolve, reject) => {
@@ -70,6 +71,7 @@ try {
   assert.equal((await client.query("select count(*)::integer as count from public.transaction_items where item_status='borrowed'")).rows[0].count, 1);
   console.log("PASS: simultaneous checkout creates exactly one open custody record");
   await verifyReturnRaces(client, connection);
+  await verifyAccountSecurityRaces(client, connection);
   const limitKey = randomBytes(32).toString("hex");
   for (let attempt = 0; attempt < 4; attempt++) await client.query("select public.consume_login_attempt($1)", [limitKey]);
   const limits = await Promise.all([0, 1].map(async () => {

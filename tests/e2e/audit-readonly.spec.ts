@@ -57,7 +57,7 @@ for(const [role,email,paths] of [
   await page.getByRole('textbox',{name:/USB scanner or typed asset code/}).fill('TRQ-001');await page.getByRole('button',{name:'Use code'}).click();await expect(page.getByRole('button',{name:'Confirm return (1)'})).toBeEnabled();
   await page.goto('/history');const download=page.waitForEvent('download');await page.getByRole('link',{name:'Export CSV'}).click();expect((await download).suggestedFilename()).toMatch(/labtrack-history/);
  } else {await page.goto('/borrow');await expect(page).toHaveURL(/\/dashboard\?error=/);}
- await page.goto('/dashboard');await page.setViewportSize({width:1366,height:900});await page.screenshot({path:info.outputPath(`${role}-desktop.png`),fullPage:true});
+ await page.goto('/dashboard');await expectedContent(page,role,'/dashboard');await page.setViewportSize({width:1366,height:900});await page.screenshot({path:info.outputPath(`${role}-desktop.png`),fullPage:true});
  await page.setViewportSize({width:320,height:900});await page.screenshot({path:info.outputPath(`${role}-mobile.png`),fullPage:true});
  await page.getByRole('button',{name:'Open menu'}).click();
  await page.getByRole('dialog',{name:'Navigation menu'}).getByRole('button',{name:'Log Out'}).click();await expect(page).toHaveURL(/\/login/);await page.goto('/tools');await expect(page).toHaveURL(/\/login/);

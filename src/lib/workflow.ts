@@ -1,5 +1,7 @@
 import type { ItemStatus, TransactionStatus } from "@/types/app";
 
+export const WORKFLOW_ITEM_LIMIT = 100;
+
 export function appendUniqueScan<T extends { token: string }>(items: T[], item: T) {
   if (items.some((existing) => existing.token === item.token)) throw new Error("Duplicate scan");
   return [...items, item];

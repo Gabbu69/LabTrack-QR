@@ -18,10 +18,10 @@ Demo records are separate from operational records, but all demo users share thi
 
 ## Personal accounts for the supervised pilot
 
-Personal accounts currently use authenticator verification. On first sign-in, set up an authenticator, scan its setup QR inside your authenticator app, and confirm its current code. The optional email-code flow below requires the owner to complete [email sender setup and hosted verification](./EMAIL_OTP_SETUP.md) and enable `EMAIL_OTP_ENABLED=true`; until then, use your authenticator.
+The hosted registration page checked on 9 October 2026 shows the authenticator-default configuration. On first personal sign-in, set up an authenticator, scan its setup QR inside your authenticator app, and confirm its current code. This page observation is not a new personal-account or physical-phone acceptance test. The optional email-code flow requires the owner to complete [email sender setup and hosted verification](./EMAIL_OTP_SETUP.md) and enable `EMAIL_OTP_ENABLED=true`; until then, use your authenticator.
 
-1. Students register with their own details and a real Gmail or school inbox they can access. Follow any provider confirmation instructions shown by the app. Custodian approval remains required.
-2. New personal accounts verify a six-digit code sent to their inbox after the password is accepted. Check spam if needed; use **Resend email code** after 60 seconds. Codes expire after 10 minutes. Accounts that already enrolled an authenticator keep using the current code from that app.
+1. Students register with their own details and a real Gmail or school inbox they can access, then press **Create account** once. Follow any provider confirmation instructions shown by the app. A successful registration may take you directly to verification; custodian approval remains required before tools can be issued.
+2. Follow the verification screen actually shown. For the current authenticator-default mode, enroll an authenticator or enter its current six-digit code. Only when the owner has enabled and verified email-code login do new personal accounts without an enrolled authenticator receive an inbox code after their password is accepted. In that mode, check spam if needed; use **Resend email code** after 60 seconds. Email codes expire after 10 minutes. Already-enrolled authenticator accounts continue using that authenticator.
 3. Staff given a temporary password verify their sign-in code, then choose their own private password. Students awaiting approval see a pending account message until a custodian approves them.
 4. Email-verified users may add an authenticator from Profile. Scan its setup QR inside an authenticator app and confirm its code; subsequent sign-ins then require the authenticator. Keep the QR and manual key private. Add a verified backup device before replacing a phone. Custodian password resets do not remove an existing authenticator; contact the deployment owner if every authenticator is lost.
 5. Students can view their own custody and history; instructors monitor records; custodians approve users and perform borrowing and returns.
@@ -30,6 +30,12 @@ Personal accounts currently use authenticator verification. On first sign-in, se
 
 Camera access requires HTTPS or localhost. Press the camera button only when ready to scan. If permission is denied or lighting is poor, use typed Student ID/asset codes or upload a JPEG, PNG or WebP QR image. SVG downloads are printable QR artwork; convert them to a supported image before uploading to the scanner.
 
-Review the borrower and physical tools before confirming. Already-missing tools remain visible and can be returned when found, but cannot be marked missing again. If custody changed while the page was open, reload the borrower's custody and rescan. After an interrupted connection, check current custody/history before retrying a confirmation.
+Review the borrower and physical tools before confirming. Already-missing tools remain visible and can be returned when found, but cannot be marked missing again. If custody changed while the page was open, reload the borrower's custody and rescan. Do not repeat an accepted return. After an interrupted connection, check current custody/history before deciding whether any further confirmation is needed.
 
 Use [CLIENT_ACCEPTANCE.md](./CLIENT_ACCEPTANCE.md) on the client's actual phone and laptop before entering real pilot records. Record observations on the blank worksheet linked from the user guide; do not fill in participant results before evaluation.
+
+## November defense and handoff
+
+Target rehearsal: **13 November 2026**. Target accepted handoff: **17 November 2026**, ahead of use around **20 November onward**. These are proposed dates, to be confirmed with the client. The package includes one 60-minute training/rehearsal and one consolidated round of minor guide or presentation corrections. Thirty calendar days of agreed-feature bug fixes start on actual accepted handoff; if accepted on 17 November, the proposed end date is 17 December 2026.
+
+Source/setup files are handed over after the balance is confirmed. The current deployment is managed under the developer's provider accounts; the responsible owner, alternate, hosting duration and any separate provider costs must be recorded privately at handoff. Continuing hosting or changes to the agreed scope require a separate agreement. Thesis evaluation results and defense approval remain the client's and adviser's responsibilities.

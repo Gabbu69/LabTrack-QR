@@ -15,7 +15,7 @@ let custody: ReturnType<typeof item>[];
 let returnResult: () => Promise<unknown>;
 beforeEach(() => {
   custody = [item("1"), item("2"), item("3", "missing")];
-  returnResult = async () => ({ returnedCount: 1 });
+  returnResult = async () => { custody = custody.slice(1); return { returnedCount: 1 }; };
   requests.send.mockReset().mockImplementation(async (url: string, init?: RequestInit) => {
     const body = init?.body ? JSON.parse(String(init.body)) : undefined;
     if (url === "/api/scan/resolve") return body.kind === "student"
@@ -42,8 +42,35 @@ it("submits the exact reviewed custody item with its tool token and blocks dupli
   await act(async () => { fireEvent.click(confirm); fireEvent.click(confirm); });
   expect(requests.send.mock.calls.filter(([url]) => url === "/api/return")).toHaveLength(1);
   expect(payload("/api/return")).toEqual({ borrowerToken: "student-A", returnedItems: [{ itemId: "loan-A-1", toolToken: "token-1", condition: "good", note: "", unavailable: false }] });
+  custody = custody.slice(1);
   await act(async () => { finish({ returnedCount: 1 }); });
   expect(screen.getByRole("status")).toHaveTextContent("Partial return: 1 accepted; 2 remain outstanding.");
+});
+
+it("uses fresh custody when another custodian accepted the other outstanding tool", async () => {
+  custody = [item("1"), item("2")];
+  returnResult = async () => { custody = []; return { returnedCount: 1 }; };
+  render(createElement(ReturnFlow));
+  await click("Scan student A"); await click("Scan tool 1"); await click("Confirm return (1)");
+  expect(screen.getByRole("status")).toHaveTextContent("Complete return: 1 tools accepted.");
+  expect(requests.send.mock.calls.filter(([url]) => url.startsWith("/api/custody"))).toHaveLength(2);
+});
+
+it("keeps an accepted return successful when its custody refresh fails and prevents resubmission", async () => {
+  let committed = false;
+  const send = requests.send.getMockImplementation()!;
+  requests.send.mockImplementation(async (url: string, init?: RequestInit) => {
+    if (url.startsWith("/api/custody") && committed) throw new Error("Network interrupted");
+    const result = await send(url, init);
+    if (url === "/api/return") committed = true;
+    return result;
+  });
+  render(createElement(ReturnFlow));
+  await click("Scan student A"); await click("Scan tool 1"); await click("Confirm return (1)");
+  expect(screen.getByRole("status")).toHaveTextContent("Return recorded: 1 tools accepted. Identify the borrower again to check current custody; do not repeat this return.");
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Confirm return (0)" })).toBeDisabled();
+  expect(requests.send.mock.calls.filter(([url]) => url === "/api/return")).toHaveLength(1);
 });
 
 it("clears missing selections and notes when changing borrowers", async () => {

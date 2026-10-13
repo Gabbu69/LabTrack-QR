@@ -16,12 +16,14 @@ The application uses Next.js 16, React 19, TypeScript, Tailwind CSS, Supabase Po
 
 1. Follow [SETUP.md](./SETUP.md) once to connect Supabase and Vercel.
 2. Use [DEFENSE_WALKTHROUGH.md](./DEFENSE_WALKTHROUGH.md) for the thesis demonstration.
-3. Read [VERIFICATION.md](./VERIFICATION.md) for what has and has not been directly verified.
+3. Read [the 13 October app audit](./FINAL_AUDIT_2026-10-13.md) for current fixes, verification and remaining release steps. [VERIFICATION.md](./VERIFICATION.md) preserves the earlier release checkpoint.
 4. Open `/guide` for role-based workflow instructions, or press **Help & user guide** on any page for a tour and individual control explanations. Review checkmarks save on the current device.
 
 Local development requires Node 24: run `npm ci` and `npm run dev` after copying `.env.example` to `.env.local`. Use `npm run db:check` for a read-only live connection check, `npm run test:db` for disposable PostgreSQL workflow/RLS/concurrency tests, and `npm run verify` for static checks and the production build. See [SETUP.md](./SETUP.md) for read-only hosted smoke commands. Mutating smoke tests are blocked against the shared Gabs backend.
 
-Read [AUDIT_REPORT.md](./AUDIT_REPORT.md) for the current audit and verification limits, and [CLIENT_GUIDE.md](./CLIENT_GUIDE.md) for the client walkthrough. Demo passwords are delivered privately and are never committed.
+Read [the 9 October client readiness record](./CLIENT_READINESS_2026-10-09.md) for current delivery checks and pending acceptance, [AUDIT_REPORT.md](./AUDIT_REPORT.md) for the earlier audit, and [CLIENT_GUIDE.md](./CLIENT_GUIDE.md) for the client walkthrough. Demo passwords are delivered privately and are never committed.
+
+See [CLIENT_DELIVERY.md](./CLIENT_DELIVERY.md) for the proposed PHP 10,000 scope, November rehearsal/handoff dates, milestone payments, training and 30-day support terms. Generated client PDF/DOCX files and dated check evidence are kept under the ignored `output/` directory. Physical-device, real-inbox and client/pilot acceptance are recorded separately from automated checks.
 
 ## Security model
 

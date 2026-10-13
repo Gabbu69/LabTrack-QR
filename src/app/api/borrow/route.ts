@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { apiRoute, databaseFailure } from "@/lib/api";
 import { createClient } from "@/lib/supabase/server";
+import { WORKFLOW_ITEM_LIMIT } from "@/lib/workflow";
 
-const schema = z.object({ borrowerToken: z.uuid(), toolTokens: z.array(z.uuid()).min(1).max(100) }).refine((value) => new Set(value.toolTokens).size === value.toolTokens.length, { message: "Duplicate tools are not allowed." });
+const schema = z.object({ borrowerToken: z.uuid(), toolTokens: z.array(z.uuid()).min(1).max(WORKFLOW_ITEM_LIMIT, "Confirm no more than 100 tools in each checkout.") }).refine((value) => new Set(value.toolTokens).size === value.toolTokens.length, { message: "Duplicate tools are not allowed." });
 
 export const POST = apiRoute({ roles: ["custodian"], active: true }, async (request) => {
   const parsed = schema.safeParse(await request.json().catch(() => null));

@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { clearMfaVerificationAttempts, consumeMfaAttempt } from "@/lib/login-limit";
 import { mfaCodeSchema, mfaNameSchema } from "@/lib/validation";
 import type { MfaActionState } from "@/lib/mfa";
+import { serializeMfaOperation } from "@/lib/mfa-operation";
 import { authCookieOptions, IDLE_SECONDS, MAX_SESSION_SECONDS, SESSION_COOKIE, signSession } from "@/lib/session-policy";
 
 function value(form: FormData, key: string) { return String(form.get(key) ?? ""); }
@@ -49,20 +50,22 @@ export async function enrollMfaAction(_previous: MfaActionState, form: FormData)
   const blocked = await limit(context.profile.id, "manage");
   if (blocked) return blocked;
   try {
-    const supabase = await createClient();
-    const { data: factors, error } = await supabase.auth.mfa.listFactors();
-    if (error || !factors) return { error: "Authenticators could not be loaded. Try again." };
-    if (factors.all.some(factor => factor.status === "verified") && context.aal !== "aal2") return { error: "Verify your existing authenticator before adding another device." };
-    // Abandoned setup attempts are not active factors; clear only this user's pending TOTP entries.
-    for (const factor of factors.all.filter(factor => factor.factor_type === "totp" && factor.status === "unverified")) {
-      const { error: cleanupError } = await supabase.auth.mfa.unenroll({ factorId: factor.id });
-      if (cleanupError) return { error: "An earlier setup could not be cleared. Try again." };
-    }
-    const { data, error: enrollmentError } = await supabase.auth.mfa.enroll({
-      factorType: "totp", issuer: "LabTrack QR", friendlyName: name.data || `Authenticator ${crypto.randomUUID().slice(0, 8)}`,
+    return await serializeMfaOperation(context.profile.id, async () => {
+      const supabase = await createClient();
+      const { data: factors, error } = await supabase.auth.mfa.listFactors();
+      if (error || !factors) return { error: "Authenticators could not be loaded. Try again." };
+      if (factors.all.some(factor => factor.status === "verified") && context.aal !== "aal2") return { error: "Verify your existing authenticator before adding another device." };
+      // Abandoned setup attempts are not active factors; clear only this user's pending TOTP entries.
+      for (const factor of factors.all.filter(factor => factor.factor_type === "totp" && factor.status === "unverified")) {
+        const { error: cleanupError } = await supabase.auth.mfa.unenroll({ factorId: factor.id });
+        if (cleanupError) return { error: "An earlier setup could not be cleared. Try again." };
+      }
+      const { data, error: enrollmentError } = await supabase.auth.mfa.enroll({
+        factorType: "totp", issuer: "LabTrack QR", friendlyName: name.data || `Authenticator ${crypto.randomUUID().slice(0, 8)}`,
+      });
+      if (enrollmentError || !data) return { error: "Setup could not be started. Use a different device name or try again." };
+      return { enrollment: { factorId: data.id, uri: data.totp.uri, secret: data.totp.secret } };
     });
-    if (enrollmentError || !data) return { error: "Setup could not be started. Use a different device name or try again." };
-    return { enrollment: { factorId: data.id, uri: data.totp.uri, secret: data.totp.secret } };
   } catch { return { error: "Authenticator setup is temporarily unavailable. Try again later." }; }
 }
 
@@ -74,16 +77,20 @@ export async function verifyMfaAction(_previous: MfaActionState, form: FormData)
   const blocked = await limit(context.profile.id, "verify");
   if (blocked) return blocked;
   try {
-    const supabase = await createClient();
-    const { data: factors, error } = await supabase.auth.mfa.listFactors();
-    if (error || !factors) return { error: "Authenticators could not be loaded. Try again." };
-    const factor = factors.all.find(item => item.id === parsed.data.factorId && item.factor_type === "totp");
-    if (!factor || (factor.status !== "verified" && factors.all.some(item => item.status === "verified") && context.aal !== "aal2")) {
-      return { error: "Verify an active authenticator linked to your account." };
-    }
-    const { error: verificationError } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code: parsed.data.code });
-    if (verificationError) return { error: "Code was not accepted. Use the current code and try again." };
-    if (!await persistVerifiedSession(supabase, context, true)) return { error: "Verification could not establish a secure session. Sign out and try again." };
+    const result = await serializeMfaOperation(context.profile.id, async () => {
+      const supabase = await createClient();
+      const { data: factors, error } = await supabase.auth.mfa.listFactors();
+      if (error || !factors) return { error: "Authenticators could not be loaded. Try again." };
+      const factor = factors.all.find(item => item.id === parsed.data.factorId && item.factor_type === "totp");
+      if (!factor || (factor.status !== "verified" && factors.all.some(item => item.status === "verified") && context.aal !== "aal2")) {
+        return { error: "Verify an active authenticator linked to your account." };
+      }
+      const { error: verificationError } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code: parsed.data.code });
+      if (verificationError) return { error: "Code was not accepted. Use the current code and try again." };
+      if (!await persistVerifiedSession(supabase, context, true)) return { error: "Verification could not establish a secure session. Sign out and try again." };
+      return {};
+    });
+    if (result.error) return result;
   } catch { return { error: "Authenticator verification is temporarily unavailable. Try again later." }; }
   revalidatePath("/", "layout");
   redirect(context.profile.must_change_password ? "/change-password" : value(form, "manage") === "1" ? "/two-factor?manage=1&message=Authenticator%20added." : "/dashboard");
@@ -99,16 +106,20 @@ export async function removeMfaAction(_previous: MfaActionState, form: FormData)
   let sessionReady = false;
   let removed = false;
   try {
-    const supabase = await createClient();
-    const { data: factors, error } = await supabase.auth.mfa.listFactors();
-    if (error || !factors) return { error: "Authenticators could not be loaded. Try again." };
-    if (!factors.totp.some(factor => factor.id === parsed.data)) return { error: "Choose an authenticator linked to your account." };
-    if (factors.totp.length < 2) return { error: "Add and verify a backup authenticator before removing your last device." };
-    const { error: removalError } = await supabase.auth.mfa.unenroll({ factorId: parsed.data });
-    if (removalError) return { error: "The authenticator could not be removed. Try again." };
-    removed = true;
-    const { error: refreshError } = await supabase.auth.refreshSession();
-    sessionReady = !refreshError && await persistVerifiedSession(supabase, context);
+    const result = await serializeMfaOperation(context.profile.id, async () => {
+      const supabase = await createClient();
+      const { data: factors, error } = await supabase.auth.mfa.listFactors();
+      if (error || !factors) return { error: "Authenticators could not be loaded. Try again." };
+      if (!factors.totp.some(factor => factor.id === parsed.data)) return { error: "Choose an authenticator linked to your account." };
+      if (factors.totp.length < 2) return { error: "Add and verify a backup authenticator before removing your last device." };
+      const { error: removalError } = await supabase.auth.mfa.unenroll({ factorId: parsed.data });
+      if (removalError) return { error: "The authenticator could not be removed. Try again." };
+      removed = true;
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      sessionReady = !refreshError && await persistVerifiedSession(supabase, context);
+      return {};
+    }, { requirePrivatePassword: true });
+    if (result.error) return result;
   } catch {
     if (!removed) return { error: "Authenticator management is temporarily unavailable. Try again later." };
   }
