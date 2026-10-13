@@ -1,6 +1,6 @@
 # LabTrack QR app audit — 13 October 2026
 
-**Status: source fixes verified locally; publishing and the new live migration are pending.** The hosted application still serves `84784b886139a0f5e69381077622b84cb2fed19e`. The evidence below distinguishes that existing release from the newly reviewed source.
+**Status: application fixes published and verified in production.** Implementation commit `a3558d93cd6eece86733cd8011810ca725787178` was published to GitHub main, deployed to the existing Vercel project, and verified after applying the reviewed migration. Supporting audit updates can advance the repository commit without changing the verified application implementation.
 
 The owner selected **authenticator-app two-factor authentication** on 13 October. Personal accounts must verify an authenticator; shared database-scoped demonstration accounts are exempt. Keep `EMAIL_OTP_ENABLED` unset or `false`. Email SMTP/inbox delivery is outside the selected login requirements.
 
@@ -41,23 +41,26 @@ See [DEPENDENCY_AUDIT.md](DEPENDENCY_AUDIT.md) for the existing development-only
 
 The target remains the existing [LabTrack production site](https://labtrack-qr.vercel.app), GitHub repository `Gabbu69/LabTrack-QR`, and Gabs Supabase project `tsusogeqjduyahoskteb`.
 
-- GitHub main currently matches baseline `84784b8`; its recorded [CI run](https://github.com/Gabbu69/LabTrack-QR/actions/runs/37806130617) succeeded. GitHub deployment `6940557647` records a successful Production release for that same SHA.
+- Implementation commit `a3558d9` passed [GitHub CI run 38400285306](https://github.com/Gabbu69/LabTrack-QR/actions/runs/38400285306). GitHub deployment `7038945745` records a successful Production release for that same SHA.
+- Vercel deployment `dpl_EkTka7LGHF7LPc4suJu6tsZuQHGe` is READY at [its exact URL](https://labtrack-2fe584w85-edgardo-gabriel-paclibars-projects.vercel.app). Authenticated deployment metadata confirms project `prj_wx6igIRE93H6eIk8BdZQ6pQWqURP`, source SHA `a3558d9`, branch `main`, and the production alias. Authenticated checks on that exact deployment returned login HTTP 200 and anonymous session HTTP 401.
 - Fresh read-only HTTP checks passed anonymous/expired-session JSON denial and all three role dashboards, API restrictions, session checks and scoped CSV.
 - Fresh live browser checks: **seven passed**. Public pages fit widths 320/390/768/1366; custodian/instructor/student navigation, permitted controls, refresh and logout passed; CSV and A4 reports agreed on filtered assets and each item's return date for all three roles. Desktop and mobile role screenshots were inspected.
-- A fresh disposable operational staff trial passed direct password-only database denial, authenticator enrollment, mandatory private-password change before protected records, later sign-in, invalid-code rejection, verified backup replacement and the last-device guard. The fixture was deleted and original profile/tool/transaction/item counts were preserved. This provider lifecycle validates the existing hosted release; the new operation lease is separately covered by the local unit and database race tests until released.
+- A fresh disposable operational staff trial passed direct password-only database denial, authenticator enrollment, mandatory private-password change before protected records, later sign-in, invalid-code rejection, verified backup replacement and the last-device guard. It was repeated successfully on the new production application, exercising the new operation lease. Each fixture was deleted and original profile/tool/transaction/item counts were preserved.
 - Live database reads passed Auth connectivity, anonymous denial on the four main tables and private profile-photo storage with a 2 MB limit. Counts observed: 18 profiles, 20 tools, three transactions and five items.
-- All 14 existing live migrations are recorded. A compatible CLI using an isolated local config linked to Gabs and successfully dry-ran the current source. **Only `20261013010000_serialize_account_security.sql` would be applied.** No live migration was applied in this audit.
+- A compatible CLI using an isolated local config linked to Gabs and successfully dry-ran the current source. **Only `20261013010000_serialize_account_security.sql` was pending.** After explicit owner approval and a verified private checkpoint, that single migration was applied; the live ledger now contains all 15 source versions. The new column is readable, with no abandoned operation leases on the preserved profiles.
 
-The seven browser passes describe the baseline hosted application. They do not prove that the new source fixes are deployed.
+The seven role/report browser checks and HTTP smoke were repeated after the implementation release, and all passed. Pre-release checks are recorded separately in ignored logs.
 
-## Release work still required
+## Completed release work
 
-1. Approve publication of the reviewed source to `Gabbu69/LabTrack-QR`, the additive migration to Gabs, and the existing Vercel production project. The new authenticator actions require the migration before deployment.
-2. Take and verify a fresh private pre-migration checkpoint, apply only `20261013010000_serialize_account_security.sql`, and confirm installed versions. It adds a nullable operation lease and replaces two private routines; it does not reset records or seed demonstrations.
-3. Publish the reviewed commit, confirm its GitHub checks and deployment source SHA, and verify the new application at its exact deployment URL and production alias.
-4. Repeat role/API/report checks and the disposable hosted authenticator lifecycle on the released version, including temporary-password enforcement. Remove only the audit fixture and confirm original counts are preserved.
+1. The owner explicitly approved source publication, the additive migration and the existing production release.
+2. A fresh read-only checkpoint was encrypted with Windows DPAPI CurrentUser and verified by decrypt/readback in memory before migration. It includes the four main tables, Auth admin metadata, photo bucket/object data and the 14 baseline migration sources. It is a scoped migration checkpoint; it omits Auth password hashes/MFA secrets and is not a complete hosted recovery backup. Private files remain outside Git and handoff archives.
+3. Only `20261013010000_serialize_account_security.sql` was applied. It adds a nullable operation lease and replaces two private routines. Records and demonstration inventory were preserved.
+4. The reviewed implementation was published, CI and deployment source/alias verified, and the released role/API/report and authenticator checks passed. Disposable account cleanup and original record counts were confirmed.
 
 Source archives are rebuilt from the saved source commit before client release. Their manifests record the source commit, working-copy state and per-file hashes; live environment files, dependencies, provider/browser state and private backups are excluded. The existing client documents remain dated 9 October and retain their proposed, unsigned terms.
+
+A bounded data-integrity read found two active demo instructor profiles that are not retrievable through the Auth admin API. There are no unmatched operational profiles or custodians, and all three advertised demo sign-ins passed. The precise provider/schema cause is unverified; those historical records were preserved rather than repaired during this release. Review them privately before any later demonstration-data cleanup.
 
 ## Client/device acceptance
 
