@@ -4,7 +4,7 @@ export function signInErrorMessage(error: ProviderError) {
   if (error.code === "email_not_confirmed") return "Confirm your email using the link in your inbox, then sign in again.";
   if (error.status === 429 || error.code?.startsWith("over_")) return "Too many sign-in requests. Wait a few minutes before trying again.";
   if (error.status && error.status >= 500) return "Sign-in is temporarily unavailable. Please try again later.";
-  return "Email or password is incorrect. If registration failed, complete registration first. Ask the custodian if you need a password reset.";
+  return "Email or password is incorrect. Ask the custodian if you need a reset.";
 }
 
 export function registrationErrorMessage(error: ProviderError) {

@@ -23,7 +23,7 @@ vi.mock("@/lib/session-policy", () => ({ SESSION_COOKIE: "labtrack-session", rea
 vi.mock("next/navigation", () => ({ redirect: (path: string): never => { throw new Error(`REDIRECT:${path}`); } }));
 
 const account = {
-  id: "user-1", role: "student", status: "active", data_scope: "operational", must_change_password: false,
+  program: null, id: "user-1", role: "student", status: "active", data_scope: "operational", must_change_password: false,
 } as Profile;
 const session = { user: account.id, session: "session-1", started: 10, seen: 20 };
 
@@ -48,7 +48,7 @@ beforeEach(() => {
 
 describe("signed authentication context", () => {
   it("retains an AAL1 identity for setup without granting portal access", async () => {
-    expect(await getAuthContext()).toEqual({ profile: account, aal: "aal1", session, emailOtpVerified: false });
+    expect(await getAuthContext()).toEqual({ profile: { ...account, program: null }, aal: "aal1", session, emailOtpVerified: false });
     expect(mocks.session).toHaveBeenCalledWith("signed-cookie", account.id, session.session);
     expect(mocks.from).toHaveBeenCalledWith("profiles");
     expect(mocks.eq).toHaveBeenCalledWith("id", account.id);

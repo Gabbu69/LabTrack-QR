@@ -27,7 +27,7 @@ beforeEach(() => {
     if (url === "/api/scan/resolve") return body.kind === "student"
       ? { kind: "student", token: "borrower", fullName: "Batch Borrower", studentId: "BATCH-1", status: "active" }
       : { kind: "tool", token: `token-${body.value}`, assetCode: `TOOL-${body.value}`, toolName: `Tool ${body.value}`, status: "available", condition: "good" };
-    if (url.startsWith("/api/custody")) return { items: custody };
+    if (url.startsWith("/api/custody")) return { student: { kind: "student", token: "borrower", fullName: "Batch Borrower", studentId: "BATCH-1", status: "active" }, items: custody };
     if (url === "/api/borrow") return { transactionId: "accepted-batch" };
     if (url === "/api/return") return { returnedCount: 2 };
     if (url === "/api/missing") return { updatedCount: 2 };

@@ -1,47 +1,41 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Check, Flag, BookOpen } from "lucide-react";
-import { missions, type GuideRole } from "@/lib/guide-missions";
+import { ArrowLeft } from "lucide-react";
+import type { GuideRole } from "@/lib/guide-missions";
 
-export function MissionGuide() {
-  const [role, setRole] = useState<GuideRole>("student");
-  const [completed, setCompleted] = useState<string[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-    try {
-      const saved: unknown = JSON.parse(localStorage.getItem("labtrack-missions-v1") ?? "[]");
-      if (Array.isArray(saved)) setCompleted(saved.filter((item): item is string => typeof item === "string"));
-    } catch { /* Lessons remain usable when storage is unavailable. */ }
-    setLoaded(true);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, []);
-  function toggle(key: string) {
-    const next = completed.includes(key) ? completed.filter((item) => item !== key) : [...completed, key];
-    setCompleted(next);
-    try { localStorage.setItem("labtrack-missions-v1", JSON.stringify(next)); } catch { /* Optional progress. */ }
-  }
-  const count = missions[role].filter((_, index) => completed.includes(`${role}-${index}`)).length;
-  return <main className="mission-page">
-    <header className="mission-header"><div className="mission-kicker"><BookOpen aria-hidden="true" />LABTRACK HELP CENTER</div><h1>USER GUIDE</h1><p>Instructions for account access, tool checkout, returns, and reporting.</p><Link href="/login" className="button button-secondary">Back to sign in</Link></header>
-    <fieldset className="mission-roles"><legend>1. Choose your role</legend>{(["student", "custodian", "instructor"] as const).map((item) => <label key={item} className={role === item ? "chosen" : ""}><input type="radio" name="guide-role" value={item} checked={role === item} onChange={() => setRole(item)} />{item === "student" ? "Student" : item === "custodian" ? "Tool custodian" : "Instructor"}</label>)}</fieldset>
-    <section className="mission-progress" aria-label="Guide progress"><div><strong>2. Review the workflow instructions</strong><span>{count} / {missions[role].length} reviewed</span></div><progress value={count} max={missions[role].length} /><p>Reviewed sections are saved on this device. Marking a section does not change laboratory records.</p></section>
-    <section className="mission-tip" aria-label="Try a demo account">
-      <h2>Try with a demo account</h2>
-      <p>Explore as a <strong>{role === "custodian" ? "tool custodian" : role}</strong> using shared sample records. Changes are visible to other demo users. Do not enter personal information.</p>
-      <p>We will fill in the demo email and password on the sign-in page. You choose when to press Sign in. These are LabTrack login addresses, not Gmail inboxes.</p>
-      <Link className="button button-primary" href={`/login?demo=${role}`} prefetch={false}>Use demo account</Link>
-    </section>
-    <div className="mission-list">{missions[role].map((mission, index) => {
-      const key = `${role}-${index}`; const done = completed.includes(key);
-      return <article className={`mission-card${done ? " learned" : ""}`} key={key}>
-        <div className="mission-number" aria-hidden="true">{done ? <Check /> : String(index + 1).padStart(2, "0")}</div>
-        <div className="mission-body"><p className="mission-kicker">WORKFLOW {index + 1}</p><h2>{mission.title}</h2><ol>{mission.steps.map((step) => <li key={step}>{step}</li>)}</ol><p className="mission-success"><Flag aria-hidden="true" /><span><strong>Expected result: </strong>{mission.success}</span></p><div className="mission-actions"><Link className="button button-secondary" href={mission.href}>Open this page</Link><button className="button button-primary" type="button" aria-pressed={done} disabled={!loaded} onClick={() => toggle(key)}>{done ? "Reviewed ✓ — undo" : "Mark as reviewed"}</button></div></div>
-      </article>;
-    })}</div>
-    <aside className="mission-tip"><h2>Need help with a control?</h2><p>Press <strong>Help & user guide → Explain a control</strong>, then tap it. The highlighted control stays safe while you read. Close the guide to actually use it.</p><p>A gray button means you need to finish an earlier step or wait for a request. If a red message appears, read it before trying again.</p></aside>
+type HelpTopic = { title: string; href: string; steps: string[] };
+const shared: HelpTopic[] = [
+  { title: "Profile & photo", href: "/profile", steps: ["Update your details or choose a picture.", "Press Save profile."] },
+  { title: "Authenticator & sign-out", href: "/profile", steps: ["Use the current six-digit code when signing in.", "Add a backup under Manage authenticators before changing phones.", "To leave, press Log Out → Yes, log out."] },
+];
+const topics: Record<GuideRole, HelpTopic[]> = {
+  custodian: [
+    { title: "Borrow tools", href: "/borrow", steps: ["Scan the student QR or enter their Student ID.", "Scan each tool, then check the list.", "Press Confirm checkout."] },
+    { title: "Return tools", href: "/return", steps: ["Identify the student.", "Scan received tools and check their condition.", "Press Confirm return. Unscanned tools stay outstanding."] },
+    { title: "Tools & QR labels", href: "/tools", steps: ["Use Add tools to save equipment.", "Print labels and match each code to its tool.", "Use status filters to find available or missing tools."] },
+    { title: "Create an account", href: "/users", steps: ["Choose Create a student account or Create a staff account.", "Enter their details and a temporary password.", "Give the password privately. They will link an authenticator and choose a new password."] },
+    { title: "Reports", href: "/history", steps: ["Search or filter the records.", "Choose Print A4 report or Export CSV."] },
+    ...shared,
+  ],
+  student: [
+    { title: "Borrow & return", href: "/my-qr", steps: ["Show My QR to the custodian.", "Check your Borrowed Tools list.", "Return the tools to the custodian."] },
+    { title: "Borrowing history", href: "/history", steps: ["Open a record to see its tools and return status."] },
+    ...shared,
+  ],
+  instructor: [
+    { title: "Check tools & students", href: "/tools", steps: ["Review tool availability and student records.", "Ask the custodian to make account or inventory changes."] },
+    { title: "Reports", href: "/history", steps: ["Filter borrowing records.", "Print the report or export CSV."] },
+    ...shared,
+  ],
+};
+
+export function MissionGuide({ initialRole = "student" }: { initialRole?: GuideRole; signedIn?: boolean }) {
+  return <main className="simple-guide">
+    <Link className="back-link" href="/dashboard"><ArrowLeft aria-hidden="true" />Back to dashboard</Link>
+    <h1>User guide</h1><p>Choose a topic.</p>
+    <div className="simple-guide-topics">{topics[initialRole].map(topic => <details key={topic.title}>
+      <summary>{topic.title}</summary>
+      <ol>{topic.steps.map(step => <li key={step}>{step}</li>)}</ol>
+      <Link className="text-link" href={topic.href}>Open page</Link>
+    </details>)}</div>
   </main>;
 }

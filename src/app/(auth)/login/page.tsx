@@ -1,27 +1,25 @@
+import { ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import { LogIn } from "lucide-react";
 import { loginAction } from "@/app/actions/auth";
 import { Notice } from "@/components/feedback/notice";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { PasswordField } from "@/components/forms/password-field";
 import { isSupabaseConfigured } from "@/lib/env";
-import { getDemoAccess } from "@/lib/demo-access";
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; message?: string; demo?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; message?: string }> }) {
   const query = await searchParams;
-  const demo = await getDemoAccess(query.demo);
-  return <div className="auth-form-wrap">
-    <div className="auth-form-heading"><span className="industrial-icon"><LogIn aria-hidden="true" /></span><h2>Sign in to the tool crib</h2><p>Sign in with your LabTrack email and password. Personal accounts also require a verification code.</p></div>
-    {!isSupabaseConfigured() && <Notice type="info">Local interface preview is ready. Supabase credentials are still required for sign-in.</Notice>}
-    {query.error && <Notice type="error">{query.error}</Notice>}
-    {query.message && <Notice type="success">{query.message}</Notice>}
-    {demo && <Notice type="info">Your {demo.role} demo account is filled in. Press Sign in to try the app with shared sample records. Do not enter personal information.</Notice>}
-    {query.demo && !demo && <Notice type="error">Demo access is temporarily unavailable. Choose another role in the user guide or sign in with your own account.</Notice>}
-    <form key={demo?.role ?? "personal"} action={loginAction} className="form-stack">
-      <label>Email address<input name="email" type="email" autoComplete="email" placeholder="name@school.edu" defaultValue={demo?.email ?? ""} required /></label>
-      <PasswordField label="Password" name="password" autoComplete="current-password" defaultValue={demo?.password ?? ""} minLength={8} required />
+  return <div className="auth-form-wrap login-card">
+    <div className="auth-form-heading"><span className="login-security-icon"><ShieldCheck aria-hidden="true" /></span><h2>Sign in to LabTrack</h2><p>Use the account provided by your tool custodian.</p></div>
+    {!isSupabaseConfigured() && <Notice type="info">Sign-in is temporarily unavailable. Contact the tool custodian.</Notice>}
+    <Notice error={query.error} message={query.message} />
+    <form action={loginAction} className="form-stack">
+      <label>Email address<input name="email" type="email" autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="you@school.edu" required /></label>
+      <PasswordField label="Password" name="password" autoComplete="current-password" minLength={8} required />
       <SubmitButton pendingText="Signing in…">Sign in</SubmitButton>
     </form>
-    <div className="auth-links"><p>Student mechanic leader? <Link href="/register">Register an account</Link></p><p><Link href="/guide">Complete user guide & demo accounts</Link>{demo && <> · <Link href="/login">Use my own account</Link></>}</p><p className="help-copy">Forgot your password? Ask the tool custodian for a one-time temporary password.</p></div>
+    <Link className="login-forgot-password text-link" href="/forgot-password">Forgot password?</Link>
+    <p className="login-authenticator-note"><ShieldCheck aria-hidden="true" /><span>Protected by your authenticator app.</span></p>
+    <details className="login-access-help"><summary>Need an account?</summary><p>Ask the tool custodian for your sign-in details.</p></details>
+    <p className="login-footer">AISAT Davao · Laboratory tool management</p>
   </div>;
 }

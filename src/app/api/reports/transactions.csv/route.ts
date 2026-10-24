@@ -10,7 +10,7 @@ export const GET = apiRoute({ active: true }, async (request) => {
   try { parseHistoryFilters(filters); }
   catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid report filters." }, { status: 400 }); }
   const client = await createClient();
-  const columns = ["Transaction ID","Borrower","Student ID","Year/Section","Group","Date Borrowed","Date Returned","Transaction Status","Asset Code","Tool","Item Status","Issue Condition","Return Condition","Return Note","Missing At","Missing Note"];
+  const columns = ["Transaction ID","Borrower","Student ID","Year/Section","Date Borrowed","Date Returned","Transaction Status","Asset Code","Tool","Item Status","Issue Condition","Return Condition","Return Note","Missing At","Missing Note"];
   const chunks = ["\uFEFF" + toCsv(columns, [])];
   // Do not return a successful download unless every batch succeeds.
   const startedAt = new Date().toISOString();
@@ -25,7 +25,7 @@ export const GET = apiRoute({ active: true }, async (request) => {
     items.sort((a, b) => (map.get(b.transaction_id)?.borrowed_at ?? "").localeCompare(map.get(a.transaction_id)?.borrowed_at ?? "") || a.asset_code_snapshot.localeCompare(b.asset_code_snapshot));
     const rows = items.map((item) => {
       const tx = map.get(item.transaction_id)!;
-      return [tx.id,tx.borrower_name_snapshot,tx.borrower_student_id_snapshot,tx.borrower_year_section_snapshot,tx.borrower_group_snapshot,tx.borrowed_at,item.returned_at,tx.status,item.asset_code_snapshot,item.tool_name_snapshot,item.item_status,item.issue_condition,item.return_condition,item.return_note,item.missing_at,item.missing_note];
+      return [tx.id,tx.borrower_name_snapshot,tx.borrower_student_id_snapshot,tx.borrower_year_section_snapshot,tx.borrowed_at,item.returned_at,tx.status,item.asset_code_snapshot,item.tool_name_snapshot,item.item_status,item.issue_condition,item.return_condition,item.return_note,item.missing_at,item.missing_note];
     });
     if (rows.length) chunks.push(toCsv([], rows).slice(2));
     if (data.length < 250) break;

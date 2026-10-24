@@ -13,6 +13,7 @@
 /.audit-evidence
 /output
 .labtrack-workspace
+/.local-runtime
 
 # local environment
 .env*

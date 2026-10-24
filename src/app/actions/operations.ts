@@ -10,6 +10,7 @@ import { requireCustodian, requireProfile } from "@/lib/auth";
 import { normalizeAssetPrefix } from "@/lib/asset-code";
 import { toolBatchSchema } from "@/lib/validation";
 import { isSharedDemoIdentity, SHARED_DEMO_ACCOUNT_NOTICE } from "@/lib/demo-identities";
+import { studentIdInUse } from "@/lib/registration";
 
 function value(formData: FormData, key: string) { return String(formData.get(key) ?? ""); }
 function go(path: string, key: "error" | "message", message: string): never { redirect(`${path}?${key}=${encodeURIComponent(message)}`); }
@@ -62,13 +63,36 @@ export async function createStaffAction(formData: FormData) {
   const parsed = z.object({ fullName: z.string().trim().min(2).max(120), email: z.string().trim().toLowerCase().pipe(z.email()), role: z.enum(["custodian", "instructor"]), temporaryPassword: z.string().min(10).max(128) }).safeParse({ fullName: value(formData, "full_name"), email: value(formData, "email"), role: value(formData, "role"), temporaryPassword: value(formData, "temporary_password") });
   if (!parsed.success) go("/users", "error", parsed.error.issues[0]?.message ?? "Check the staff account details.");
   const admin = createAdminClient();
-  const { data, error } = await admin.auth.admin.createUser({ email: parsed.data.email, password: parsed.data.temporaryPassword, email_confirm: true, user_metadata: { full_name: parsed.data.fullName }, app_metadata: { labtrack_staff_role: parsed.data.role, labtrack_data_scope: actor.data_scope } });
+  const { data, error } = await admin.auth.admin.createUser({ email: parsed.data.email, password: parsed.data.temporaryPassword, email_confirm: true, user_metadata: { full_name: parsed.data.fullName }, app_metadata: { labtrack_staff_role: parsed.data.role, labtrack_data_scope: actor.data_scope, labtrack_managed_account: true } });
   if (error) go("/users", "error", "The change could not be completed. Check the details, reload the record, and try again.");
   if (!data.user) go("/users", "error", "Staff account could not be created.");
   const { error: profileError } = await admin.from("profiles").update({ full_name: parsed.data.fullName, role: parsed.data.role, data_scope: actor.data_scope, status: "active", student_id: null, must_change_password: true }).eq("id", data.user.id);
   if (profileError) go("/users", "error", "Account was created but staff access could not be assigned. Contact the deployment owner before retrying.");
   revalidatePath("/users");
   go("/users", "message", "Staff account created. Give the temporary password directly to the staff member.");
+}
+
+export async function createStudentAction(formData: FormData) {
+  const actor = await requireCustodian();
+  const parsed = z.object({
+    fullName: z.string().trim().min(2).max(120), email: z.string().trim().toLowerCase().max(254).pipe(z.email()),
+    studentId: z.string().trim().min(2).max(40), yearSection: z.string().trim().min(2).max(60),
+    program: z.string().trim().max(80), contactNumber: z.string().trim().min(7).max(30),
+    temporaryPassword: z.string().min(10).max(128).regex(/[A-Za-z]/).regex(/[0-9]/),
+  }).safeParse({ fullName: value(formData, "full_name"), email: value(formData, "email"), studentId: value(formData, "student_id"), yearSection: value(formData, "year_section"), program: value(formData, "program"), contactNumber: value(formData, "contact_number"), temporaryPassword: value(formData, "temporary_password") });
+  if (!parsed.success) go("/users", "error", "Complete the student details. The temporary password needs at least 10 characters, including a letter and a number.");
+  if (await studentIdInUse(parsed.data.studentId)) go("/users", "error", "This Student ID already has an account. Use its existing account or reset its password.");
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.createUser({
+    email: parsed.data.email, password: parsed.data.temporaryPassword, email_confirm: true,
+    user_metadata: { full_name: parsed.data.fullName, student_id: parsed.data.studentId, year_section: parsed.data.yearSection, program: parsed.data.program, contact_number: parsed.data.contactNumber },
+    app_metadata: { labtrack_data_scope: actor.data_scope, labtrack_managed_account: true },
+  });
+  if (error || !data.user) go("/users", "error", "The student account could not be created. Check whether this email is already registered.");
+  const { error: profileError } = await admin.from("profiles").update({ full_name: parsed.data.fullName, student_id: parsed.data.studentId, year_section: parsed.data.yearSection, contact_number: parsed.data.contactNumber, role: "student", status: "active", data_scope: actor.data_scope, must_change_password: true }).eq("id", data.user.id);
+  if (profileError) go("/users", "error", "The account was created, but its student profile needs attention. Contact the project owner before retrying.");
+  revalidatePath("/users");
+  go("/users", "message", "Student account created. Give the temporary password privately. The student must verify their authenticator and choose a private password.");
 }
 
 export async function resetPasswordAction(formData: FormData) {

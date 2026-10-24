@@ -1,23 +1,36 @@
 # LabTrack QR
 
-LabTrack QR is a focused thesis MVP for one aviation-training laboratory. It identifies approved Student Mechanic Leaders and individual physical tools with opaque QR codes, then guides a Tool Custodian through checkout and return reconciliation.
+LabTrack QR is a functional tool-tracking application for one aviation-training laboratory. It identifies approved Student Mechanic Leaders and individual physical tools with opaque QR codes, then guides a Tool Custodian through checkout and return reconciliation.
 
 The application uses Next.js 16, React 19, TypeScript, Tailwind CSS, Supabase PostgreSQL/Auth/Storage, and Vercel. Runtime dependencies are pinned in `package-lock.json`.
 
 ## Included workflows
 
-- Student registration, custodian approval, login, profile photo, personal QR, current custody, and personal history
-- Authenticator verification for personal accounts, with optional password plus email-code verification after the deployment owner enables the configured sender; see [email sender setup and release requirements](./EMAIL_OTP_SETUP.md)
+- Custodian-created student and staff accounts, authenticator QR setup and sign-in, one-use recovery code, profile photos, personal QR, current custody, and history
+- Password plus authenticator verification for operational accounts; public sign-up is disabled
 - Custodian dashboard, user management, temporary-password staff creation/reset, batch asset creation, individual tool QR labels, guided borrow, guided return, explicit missing-item handling, and CSV export
 - Instructor read-only inventory, borrower, transaction, and tool-history monitoring
-- Isolated fictional demo accounts, 20 physical tools, representative transactions, and custodian-only demo reset
+- A separate sample workspace with the 20 preserved sample tools and practice records
+- The operational custodian inventory includes 300 explicitly described dummy tools for practice; see [the additive import record](./SAMPLE_TOOL_IMPORT_2026-10-25.md). Replace these placeholders with actual equipment records before physical inventory acceptance.
+
+## Working location
+
+The active project is `G:\LabTrack - QR\app`. Run `scripts/windows-workspace.ps1 -Mode dev` for development or `-Mode start` after a build. The helper keeps temporary files and the npm cache on G: and uses Node 24. The verified move record is in `G:\LabTrack-Move-20261024`.
 
 ## Start here
 
+For the simplified interface and everyday instructions, read [the simple user guide](./SIMPLE_USER_GUIDE.md). The current interface prioritizes Borrow tools, Return tools, and Manage inventory, with status shortcuts and a filtered inventory CSV download. Personal accounts use authenticator-app verification; shared demos remain clearly labeled.
+
+For a real custodian account, use [private custodian setup](./CUSTODIAN_ACCOUNT_SETUP.md): the project owner prepares a link for the named email, the custodian chooses a password, and sign-in proceeds to authenticator verification.
+
+See [authenticator and recovery verification](./AUTHENTICATOR_RECOVERY_VERIFICATION_2026-10-24.md) for the current QR setup, one-use recovery, real-service trials and publication boundary.
+
+Forgotten passwords can be reset from Sign in using the linked authenticator code. See [OTP password-reset verification](./PASSWORD_RESET_VERIFICATION_2026-10-25.md) for the real-service checks and access restrictions.
+
 1. Follow [SETUP.md](./SETUP.md) once to connect Supabase and Vercel.
 2. Use [DEFENSE_WALKTHROUGH.md](./DEFENSE_WALKTHROUGH.md) for the thesis demonstration.
-3. Read [the 13 October app audit](./FINAL_AUDIT_2026-10-13.md) for current fixes, verification and remaining release steps. [VERIFICATION.md](./VERIFICATION.md) preserves the earlier release checkpoint.
-4. Open `/guide` for role-based workflow instructions, or press **Help & user guide** on any page for a tour and individual control explanations. Review checkmarks save on the current device.
+3. Read [the current local verification](./MANAGED_APP_VERIFICATION_2026-10-24.md) for the verified move to G:, managed accounts, real authenticator trials and publication boundary. [The 13 October app audit](./FINAL_AUDIT_2026-10-13.md) and [VERIFICATION.md](./VERIFICATION.md) preserve earlier release checkpoints.
+4. After signing in, press the circle question mark at the top right. The user guide has short, expandable topics for your role.
 
 Local development requires Node 24: run `npm ci` and `npm run dev` after copying `.env.example` to `.env.local`. Use `npm run db:check` for a read-only live connection check, `npm run test:db` for disposable PostgreSQL workflow/RLS/concurrency tests, and `npm run verify` for static checks and the production build. See [SETUP.md](./SETUP.md) for read-only hosted smoke commands. Mutating smoke tests are blocked against the shared Gabs backend.
 

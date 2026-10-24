@@ -5,9 +5,9 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MfaActionState } from "@/lib/mfa";
 
-const actions = vi.hoisted(() => ({ enroll: vi.fn(), verify: vi.fn(), remove: vi.fn() }));
-vi.mock("@/app/actions/mfa", () => ({ enrollMfaAction: actions.enroll, verifyMfaAction: actions.verify, removeMfaAction: actions.remove }));
-import { TwoFactorForm } from "@/components/auth/two-factor-form";
+const actions = vi.hoisted(() => ({ enroll: vi.fn(), verify: vi.fn(), remove: vi.fn(), recover: vi.fn(), generate: vi.fn() }));
+vi.mock("@/app/actions/mfa", () => ({ enrollMfaAction: actions.enroll, verifyMfaAction: actions.verify, removeMfaAction: actions.remove, recoverMfaAction: actions.recover, generateRecoveryCodeAction: actions.generate }));
+import { RecoveryCodeSetup, TwoFactorForm } from "@/components/auth/two-factor-form";
 
 const first = { id: "550e8400-e29b-41d4-a716-446655440001", name: "My phone" };
 const second = { id: "550e8400-e29b-41d4-a716-446655440002", name: "Backup phone" };
@@ -18,6 +18,7 @@ beforeEach(() => {
   actions.enroll.mockResolvedValue({});
   actions.verify.mockResolvedValue({});
   actions.remove.mockResolvedValue({});
+  actions.recover.mockResolvedValue({}); actions.generate.mockResolvedValue({});
 });
 afterEach(cleanup);
 
@@ -26,6 +27,35 @@ async function submit(button: HTMLElement) {
 }
 
 describe("two-factor UI", () => {
+  it("shows a private recovery code and save confirmation after initial verification", async () => {
+    const code = "11111111-22222222-33333333-44444444";
+    actions.generate.mockResolvedValue({ recoveryCode: code });
+    render(createElement(RecoveryCodeSetup, { nextPath: "/dashboard" }));
+    await submit(screen.getByRole("button", { name: "Create recovery code" }));
+    expect(screen.getByText(code)).toBeInTheDocument();
+    expect(screen.getByLabelText("I saved my recovery code")).toBeRequired();
+    expect(screen.getByRole("button", { name: "Continue" }).closest("form")).toHaveAttribute("action", "/dashboard");
+    expect(window.localStorage.length).toBe(0); expect(window.sessionStorage.length).toBe(0);
+  });
+
+  it("keeps recovery input behind a short disclosure", () => {
+    render(createElement(TwoFactorForm, { factors: [first] }));
+    expect(screen.getByText("Use recovery code").closest("details")).not.toHaveAttribute("open");
+    expect(screen.getByLabelText("Recovery code")).toHaveAttribute("autocomplete", "off");
+    expect(screen.getByLabelText("Password")).toBeRequired();
+  });
+
+  it("preserves the recovery code in memory after an incorrect password", async () => {
+    actions.recover.mockResolvedValue({ error: "Password is incorrect." });
+    render(createElement(TwoFactorForm, { factors: [first] }));
+    const code = "11111111-22222222-33333333-44444444";
+    fireEvent.change(screen.getByLabelText("Recovery code"), { target: { value: code } });
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "wrong-password" } });
+    await submit(screen.getByRole("button", { name: "Recover authenticator" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Password is incorrect.");
+    expect(screen.getByLabelText("Recovery code")).toHaveValue(code);
+    expect(window.localStorage.length).toBe(0); expect(window.sessionStorage.length).toBe(0);
+  });
   it("starts enrollment only after an explicit submit", async () => {
     render(createElement(TwoFactorForm, { factors: [] }));
     expect(actions.enroll).not.toHaveBeenCalled();

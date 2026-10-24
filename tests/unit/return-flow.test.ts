@@ -21,7 +21,10 @@ beforeEach(() => {
     if (url === "/api/scan/resolve") return body.kind === "student"
       ? { kind: "student", token: `student-${body.value}`, fullName: `Borrower ${body.value}`, studentId: `ST-${body.value}`, yearSection: null, groupNumber: null, status: "active" }
       : { kind: "tool", token: `token-${body.value}`, assetCode: `TOOL-${body.value}`, toolName: `Tool ${body.value}`, condition: "good", status: "borrowed" };
-    if (url.startsWith("/api/custody")) return { items: url.includes("student-B") ? [item("1", "borrowed", "B"), item("2", "borrowed", "B")] : custody };
+    if (url.startsWith("/api/custody")) {
+      const borrower = /(?:value=B|student-B)/.test(url) ? "B" : "A";
+      return { student: { kind: "student", token: `student-${borrower}`, fullName: `Borrower ${borrower}`, studentId: `ST-${borrower}`, status: "active" }, items: borrower === "B" ? [item("1", "borrowed", "B"), item("2", "borrowed", "B")] : custody };
+    }
     if (url === "/api/return") return returnResult();
     if (url === "/api/missing") return {};
     throw new Error(`Unexpected URL ${url}`);
@@ -32,6 +35,13 @@ async function click(name: string) { await act(async () => { fireEvent.click(scr
 function openMissing() { const summary = screen.getByText("Explicitly mark missing"); summary.closest("details")!.open = true; }
 function missingChoice(code: string) { const label = screen.getByText(code).closest("label")!; return within(label).getByRole("checkbox"); }
 function payload(url: string) { return JSON.parse(String(requests.send.mock.calls.find(([path]) => path === url)![1].body)); }
+
+it("identifies the borrower and loads custody with a single request", async () => {
+  render(createElement(ReturnFlow));
+  await click("Scan student A");
+  expect(requests.send).toHaveBeenCalledExactlyOnceWith("/api/custody?value=A");
+  expect(screen.getByText("Borrower A")).toBeInTheDocument();
+});
 
 it("submits the exact reviewed custody item with its tool token and blocks duplicate pending returns", async () => {
   let finish!: (result: unknown) => void;

@@ -3,7 +3,6 @@ import "@fontsource/saira-condensed/600.css";
 import "@fontsource/saira-condensed/700.css";
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { ApplicationGuide } from "@/components/help/application-guide";
 
 export const metadata: Metadata = {
   title: {
@@ -22,7 +21,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}<ApplicationGuide /></body>
+      <body>{children}</body>
     </html>
   );
 }

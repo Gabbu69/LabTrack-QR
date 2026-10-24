@@ -38,21 +38,21 @@ for (const [role, email] of [
     const response = await page.request.get(`/api/reports/transactions.csv${query}`);
     expect(response.ok()).toBe(true);
     const [headers, ...rows] = csvRows(await response.text());
-    expect(headers).toHaveLength(16);
+    expect(headers).toHaveLength(15);
     await page.goto(`/history/print${query}`);
     await expect(page.locator(".report-heading")).toContainText("DEMO RECORDS");
     await expect(page.locator(".report-transaction")).toHaveCount(new Set(rows.map(row => row[0])).size);
     await expect(page.locator(".report-transaction tbody tr")).toHaveCount(rows.length);
     if (!rows.length) await expect(page.getByText("No transactions match these filters.", { exact: true })).toBeVisible();
     for (const row of rows) {
-      expect(row).toHaveLength(16);
-      const transaction = page.locator(".report-transaction").filter({ has: page.getByRole("heading", { name: row[1], exact: true }) }).filter({ hasText: row[2] }).filter({ hasText: `Borrowed: ${formatLabDate(row[5])}` });
+      expect(row).toHaveLength(15);
+      const transaction = page.locator(".report-transaction").filter({ has: page.getByRole("heading", { name: row[1], exact: true }) }).filter({ hasText: row[2] }).filter({ hasText: `Borrowed: ${formatLabDate(row[4])}` });
       await expect(transaction).toHaveCount(1);
-      const item = transaction.locator("tbody tr").filter({ has: page.getByText(row[8], { exact: true }) });
+      const item = transaction.locator("tbody tr").filter({ has: page.getByText(row[7], { exact: true }) });
       await expect(item).toHaveCount(1);
-      await expect(item.locator("td").nth(1)).toHaveText(row[10]);
-      await expect(item.locator("td").nth(2)).toContainText(row[6] ? formatLabDate(row[6]) : "—");
-      await expect(item.locator("td").nth(2)).toContainText(row[12] || "—");
+      await expect(item.locator("td").nth(1)).toHaveText(row[9]);
+      await expect(item.locator("td").nth(2)).toContainText(row[5] ? formatLabDate(row[5]) : "—");
+      await expect(item.locator("td").nth(2)).toContainText(row[11] || "—");
     }
     if (role === "student") {
       expect(rows.every(row => row[2] === "DEMO-2026-01")).toBe(true);

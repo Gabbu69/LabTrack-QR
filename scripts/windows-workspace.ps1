@@ -1,6 +1,28 @@
-param([ValidateSet('dev','verify','install','sync')][string]$Mode='dev', [string]$Workspace='D:\CodexBuilds\LabTrack-audit-20261003')
+param([ValidateSet('dev','start','build','verify','install','sync')][string]$Mode='dev', [string]$Workspace='')
 $ErrorActionPreference='Stop'
 $source=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+if (!$Workspace) {
+ $taskNodeDirectory=Join-Path $env:USERPROFILE '.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin'
+ $env:PATH=$taskNodeDirectory+';'+$env:PATH
+ if ((& node --version) -notmatch '^v24\.') { throw 'Node 24 is required.' }
+ $taskNpmCommand=(Get-Command npm.cmd -ErrorAction Stop).Source
+ $taskNpmCli=Join-Path (Split-Path $taskNpmCommand) 'node_modules\npm\bin\npm-cli.js'
+ $taskRuntime=Join-Path $source '.local-runtime'
+ $env:TEMP=Join-Path $taskRuntime 'temp'; $env:TMP=$env:TEMP
+ $env:npm_config_cache=Join-Path $taskRuntime 'npm-cache'
+ $env:NODE_OPTIONS='--max-old-space-size=1536'
+ New-Item -ItemType Directory -Path $env:TEMP,$env:npm_config_cache -Force | Out-Null
+ Push-Location $source
+ try {
+  if ($Mode -eq 'sync') { Write-Output "Active workspace: $source" }
+  elseif ($Mode -eq 'install') {
+   if ((Test-Path -LiteralPath 'node_modules') -and (Get-Item -LiteralPath 'node_modules' -Force).LinkType) { throw 'The dependency folder is linked. Finish the dependency transfer before reinstalling.' }
+   & (Join-Path $taskNodeDirectory 'node.exe') $taskNpmCli ci --no-audit --no-fund; if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed.' }
+  }
+  else { & (Join-Path $taskNodeDirectory 'node.exe') $taskNpmCli run $Mode; if ($LASTEXITCODE -ne 0) { throw "$Mode failed." } }
+ } finally { Pop-Location }
+ exit 0
+}
 $target=[IO.Path]::GetFullPath($Workspace).TrimEnd('\')
 if(!$target.StartsWith('D:\CodexBuilds\',[StringComparison]::OrdinalIgnoreCase) -or $target.StartsWith($source,[StringComparison]::OrdinalIgnoreCase)) {throw 'Use a separate folder under D:\CodexBuilds.'}
 function AssertOrdinaryPath([string]$Path) {

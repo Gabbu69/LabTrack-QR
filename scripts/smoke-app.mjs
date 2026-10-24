@@ -74,7 +74,7 @@ try {
     const response = await request("/dashboard", cookie);
     const html = await response.text();
     assert.equal(response.status, 200);
-    assert.ok(html.includes(["Tool crib dashboard", "Laboratory status", "Welcome, Jordan Mitchell"][index]), "Expected role dashboard");
+    assert.ok(html.includes(["What would you like to do?", "Laboratory overview", "Welcome, Jordan Mitchell"][index]), "Expected role dashboard");
     assert.ok(html.includes("DEMO MODE"), "Smoke tests require demo accounts");
     assert.ok(!html.includes('"digest":"'), "Dashboard must not render a server error");
   }));

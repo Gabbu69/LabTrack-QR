@@ -4,6 +4,7 @@ export type MfaFactor = { id: string; name: string };
 export type MfaActionState = {
   error?: string;
   message?: string;
+  recoveryCode?: string;
   enrollment?: { factorId: string; uri: string; secret: string };
 };
 

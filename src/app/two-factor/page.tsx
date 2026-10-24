@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, LogOut, ShieldCheck } from "lucide-react";
-import { signOutAction } from "@/app/actions/auth";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { LabTrackMark } from "@/components/branding/labtrack-mark";
 import { TwoFactorForm } from "@/components/auth/two-factor-form";
 import { Notice } from "@/components/feedback/notice";
@@ -43,15 +43,15 @@ export default async function TwoFactorPage({ searchParams }: { searchParams: Pr
     <main className="mfa-shell">
       <header className="mfa-header">
         <div className="mfa-brand"><LabTrackMark /><span>LabTrack <b>QR</b></span></div>
-        <form action={signOutAction}><button className="button button-secondary" type="submit"><LogOut aria-hidden="true" />Sign out</button></form>
+        <LogoutButton className="button button-secondary" label="Sign out" />
       </header>
       <div className="mfa-main">
         {manage && <Link href="/profile" className="back-link"><ArrowLeft aria-hidden="true" />Back to Profile</Link>}
-        <div className="mfa-heading"><ShieldCheck aria-hidden="true" /><div><h1>{manage ? "Two-factor authentication" : enrolling ? "Secure your account" : "Verify your sign-in"}</h1><p>{profile.email}</p></div></div>
-        {!unavailable && !unsupportedFactor && <p className="mfa-intro">{manage ? "Your account is protected with authenticator codes." : enrolling ? "An authenticator code is required with your password to access laboratory records." : "Enter your authenticator code to finish signing in."}</p>}
+        <div className="mfa-heading"><ShieldCheck aria-hidden="true" /><div><h1>{manage ? "Two-factor authentication" : enrolling ? "Link your authenticator" : "Enter your authenticator code"}</h1><p>{profile.email}</p></div></div>
+        {!unavailable && !unsupportedFactor && <p className="mfa-intro">{manage ? "Add a backup before changing phones." : enrolling ? "Link your phone once to protect your account." : "Enter the current six-digit code from LabTrack QR in your app."}</p>}
         <Notice message={query.message} />
         {unavailable ? <Notice type="error">Authenticator verification is temporarily unavailable. Try again later or sign out.</Notice> : unsupportedFactor ? <Notice type="error">This account uses a different verification method. Contact the system administrator to restore authenticator access.</Notice> : <TwoFactorForm factors={factors} manage={manage} />}
-        {!manage && factors.length > 0 && <p className="mfa-recovery">Lost access to your authenticator? Contact the laboratory custodian. A password reset does not remove two-factor protection.</p>}
+        {!manage && factors.length > 0 && <p className="mfa-recovery">No recovery code? Ask the tool custodian for help.</p>}
       </div>
     </main>
   );

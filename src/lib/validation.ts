@@ -27,7 +27,7 @@ export const mfaNameSchema = z.string().trim().max(60, "Use an authenticator nam
 
 export const profileSchema = z.object({
   fullName: z.string().trim().min(2).max(120), studentId: z.string().trim().max(40),
-  yearSection: z.string().trim().max(60), groupNumber: z.string().trim().max(30),
+  yearSection: z.string().trim().max(60), program: z.string().trim().max(80).default(""),
   contactNumber: z.string().trim().max(30),
 });
 

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { LogOut, Mail } from "lucide-react";
-import { signOutAction } from "@/app/actions/auth";
+import { Mail } from "lucide-react";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { LabTrackMark } from "@/components/branding/labtrack-mark";
 import { EmailOtpForm } from "@/components/auth/email-otp-form";
 import { Notice } from "@/components/feedback/notice";
@@ -23,7 +23,7 @@ export default async function VerifyEmailPage({ searchParams }: { searchParams: 
   return <main className="mfa-shell">
     <header className="mfa-header">
       <div className="mfa-brand"><LabTrackMark /><span>LabTrack <b>QR</b></span></div>
-      <form action={signOutAction}><button className="button button-secondary" type="submit"><LogOut aria-hidden="true" />Sign out</button></form>
+      <LogoutButton className="button button-secondary" label="Sign out" />
     </header>
     <div className="mfa-main">
       <div className="mfa-heading"><Mail aria-hidden="true" /><div><h1>Verify your email</h1><p>{profile.email}</p></div></div>

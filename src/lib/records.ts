@@ -6,7 +6,8 @@ import { containsPattern, parseHistoryFilters, type SearchParams } from "@/lib/q
 
 export function historyQuery(client: SupabaseClient<Database>, params: SearchParams, exportOrder = false) {
   const filters = parseHistoryFilters(params);
-  let query = client.from("transactions").select("*", { count: "exact" });
+  // Reports traverse every page; recounting all matches for each batch is wasted work.
+  let query = client.from("transactions").select("*", exportOrder ? undefined : { count: "exact" });
   query = exportOrder ? query.order("id") : query.order("borrowed_at", { ascending: false }).order("id");
   if (filters.status === "active") query = query.neq("status", "returned");
   else if (filters.status) query = query.eq("status", filters.status as TransactionStatus);
@@ -22,13 +23,22 @@ export function historyQuery(client: SupabaseClient<Database>, params: SearchPar
 
 export async function transactionItems(client: SupabaseClient<Database>, ids: string[]) {
   const items: TransactionItem[] = [];
-  for (let chunk = 0; chunk < ids.length; chunk += 50) {
-    for (let offset = 0; ; offset += 500) {
-      const { data, error } = await client.from("transaction_items").select("*").in("transaction_id", ids.slice(chunk, chunk + 50)).order("id").range(offset, offset + 499);
-      if (error) throw new Error("Transaction items could not be loaded. Please try again.");
-      items.push(...data);
-      if (data.length < 500) break;
-    }
+  // Overlap at most four independent ID batches. Paginate each batch completely
+  // and preserve input order, including when requests finish out of order.
+  for (let batch = 0; batch < ids.length; batch += 200) {
+    const chunks: string[][] = [];
+    for (let chunk = batch; chunk < Math.min(batch + 200, ids.length); chunk += 50) chunks.push(ids.slice(chunk, chunk + 50));
+    const results = await Promise.all(chunks.map(async (chunkIds) => {
+      const rows: TransactionItem[] = [];
+      for (let offset = 0; ; offset += 500) {
+        const { data, error } = await client.from("transaction_items").select("*").in("transaction_id", chunkIds).order("id").range(offset, offset + 499);
+        if (error) throw new Error("Transaction items could not be loaded. Please try again.");
+        rows.push(...data);
+        if (data.length < 500) break;
+      }
+      return rows;
+    }));
+    for (const rows of results) items.push(...rows);
   }
   return items;
 }

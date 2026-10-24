@@ -27,14 +27,16 @@ const mocks = vi.hoisted(() => ({
   signSession: vi.fn(),
   revalidate: vi.fn(),
   serializeOperation: vi.fn(),
+  issueRecovery: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
   getAuthContext: async () => mocks.context,
   requireProfile: mocks.requireProfile,
 }));
-vi.mock("@/lib/login-limit", () => ({ consumeMfaAttempt: mocks.consumeAttempt, clearMfaVerificationAttempts: mocks.clearVerification }));
+vi.mock("@/lib/login-limit", () => ({ consumeMfaAttempt: mocks.consumeAttempt, clearMfaVerificationAttempts: mocks.clearVerification, clearMfaManagementAttemptsAfterRecovery: vi.fn() }));
 vi.mock("@/lib/mfa-operation", () => ({ serializeMfaOperation: mocks.serializeOperation }));
+vi.mock("@/lib/mfa-recovery-store", () => ({ issueRecoveryCode: mocks.issueRecovery }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ set: mocks.setCookie, delete: mocks.deleteCookie }) }));
 vi.mock("next/navigation", () => ({ redirect: (path: string): never => { throw new Error(`REDIRECT:${path}`); } }));
@@ -69,6 +71,7 @@ function factors(all: Factor[]) {
 }
 
 beforeEach(() => {
+  mocks.issueRecovery.mockResolvedValue("11111111-22222222-33333333-44444444");
   vi.clearAllMocks();
   vi.useFakeTimers();
   vi.setSystemTime(new Date(now * 1000));
@@ -192,6 +195,12 @@ describe("MFA enrollment", () => {
 });
 
 describe("MFA code verification", () => {
+  it("opens recovery setup only after the first authenticator is verified", async () => {
+    factors([pending]);
+    await expect(verifyMfaAction({}, form({ factor_id: secondId, code: "123456" }))).rejects.toThrow("REDIRECT:/recovery-code");
+    expect(mocks.issueRecovery).not.toHaveBeenCalled();
+    expect(mocks.setCookie).toHaveBeenCalled();
+  });
   it.each([
     [[], foreignId],
     [[{ id: firstId, factor_type: "phone", status: "verified" }], firstId],

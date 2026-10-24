@@ -15,6 +15,18 @@ export async function consumeLoginAttempt(email: string): Promise<boolean> {
   return data === true;
 }
 
+export async function consumePasswordResetAttempt(email: string, networkHint: string): Promise<boolean> {
+  const admin = createAdminClient();
+  // The email bucket always applies. The network bucket also limits attempts
+  // across accounts; forwarded network hints are not trusted as identity proof.
+  for (const input of [`password-reset:${email.trim().toLowerCase()}`, `password-reset-network:${networkHint.slice(0, 200)}`]) {
+    const { data, error } = await admin.rpc("consume_login_attempt", { p_key: limiterKey(input) });
+    if (error) throw new Error("Password reset protection unavailable.");
+    if (data !== true) return false;
+  }
+  return true;
+}
+
 export async function consumeMfaAttempt(userId: string, purpose: "verify" | "manage" | "email-send" | "email-verify" = "verify"): Promise<boolean> {
   const key = limiterKey(`mfa:${purpose}:${userId}`);
   const { data, error } = await createAdminClient().rpc("consume_login_attempt", { p_key: key });
@@ -35,4 +47,10 @@ export async function clearMfaVerificationAttempts(userId: string): Promise<void
     p_key: limiterKey(`mfa:verify:${userId}`),
   });
   if (error) throw new Error("Authenticator protection is unavailable.");
+}
+
+export async function clearMfaManagementAttemptsAfterRecovery(userId: string): Promise<void> {
+  // A consumed recovery code plus a fresh password permits immediate re-enrollment.
+  const { error } = await createAdminClient().rpc("reset_login_attempts", { p_key: limiterKey(`mfa:manage:${userId}`) });
+  if (error) throw new Error("Authenticator recovery is unavailable.");
 }

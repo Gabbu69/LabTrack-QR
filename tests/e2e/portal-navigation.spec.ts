@@ -12,7 +12,11 @@ for (const [role, destination] of [
   test(`${role} can use the mobile side menu`, async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "mobile", "Mobile layout check");
     test.setTimeout(120_000);
-    await page.goto(`/login?demo=${role}`);
+    test.skip(!process.env.DEMO_ACCOUNT_PASSWORD, "Private sample credentials are required.");
+    await page.goto("/login");
+    const address = role === "student" ? "jordan.demo@labtrackqr2026.com" : `${role}.demo@labtrackqr2026.com`;
+    await page.getByLabel("Email address", { exact: true }).fill(address);
+    await page.getByLabel("Password", { exact: true }).fill(process.env.DEMO_ACCOUNT_PASSWORD!);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
 
@@ -35,6 +39,10 @@ for (const [role, destination] of [
     await expect(opener).toBeFocused();
     await opener.click();
     await drawer.getByRole("button", { name: "Log Out" }).click();
+    await page.getByRole("button", { name: "Stay signed in", exact: true }).click();
+    await expect(drawer).toBeVisible();
+    await drawer.getByRole("button", { name: "Log Out" }).click();
+    await page.getByRole("button", { name: "Yes, log out", exact: true }).click();
     await expect(page).toHaveURL(/\/login$/);
   });
 }
@@ -42,7 +50,10 @@ for (const [role, destination] of [
 test("desktop sidebar stays visible across pages", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "laptop", "Desktop layout check");
   test.setTimeout(120_000);
-  await page.goto("/login?demo=custodian");
+  test.skip(!process.env.DEMO_ACCOUNT_PASSWORD, "Private sample credentials are required.");
+  await page.goto("/login");
+  await page.getByLabel("Email address", { exact: true }).fill("custodian.demo@labtrackqr2026.com");
+  await page.getByLabel("Password", { exact: true }).fill(process.env.DEMO_ACCOUNT_PASSWORD!);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   const sidebar = page.locator(".portal-sidebar");

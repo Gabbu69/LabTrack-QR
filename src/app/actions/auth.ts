@@ -11,11 +11,11 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { requireProfile } from "@/lib/auth";
 import { performPasswordUpdate } from "@/lib/password-operation";
 import { normalizeProfilePhoto } from "@/lib/profile-photo";
-import { loginSchema, passwordSchema, registrationSchema, profileSchema } from "@/lib/validation";
+import { loginSchema, passwordSchema, profileSchema } from "@/lib/validation";
 import { requiresMfa } from "@/lib/mfa";
 import { secondFactorPath, sendEmailOtp } from "@/lib/email-otp";
-import { registrationErrorMessage, signInErrorMessage } from "@/lib/auth-errors";
-import { DUPLICATE_STUDENT_ID, studentIdInUse, type RegistrationState } from "@/lib/registration";
+import { signInErrorMessage } from "@/lib/auth-errors";
+import { type RegistrationState } from "@/lib/registration";
 
 function value(formData: FormData, key: string) { return String(formData.get(key) ?? ""); }
 function go(path: string, key: "error" | "message", message: string): never {
@@ -56,43 +56,9 @@ export async function loginAction(formData: FormData) {
   redirect(profile.must_change_password ? "/change-password" : "/dashboard");
 }
 
-export async function registerAction(formData: FormData): Promise<RegistrationState> {
-  if (!isSupabaseConfigured()) return { error: "Registration is temporarily unavailable. Contact the laboratory custodian." };
-  const parsed = registrationSchema.safeParse({
-    email: value(formData, "email"), password: value(formData, "password"), fullName: value(formData, "full_name"),
-    studentId: value(formData, "student_id"), yearSection: value(formData, "year_section"),
-    groupNumber: value(formData, "group_number"), contactNumber: value(formData, "contact_number"),
-  });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the registration form.", field: parsed.error.issues[0]?.path[0]?.toString() };
-  try {
-    if (!await consumeLoginAttempt(`registration:${parsed.data.email}`)) return { error: "Too many registration attempts. Wait 15 minutes before trying again. Your details are kept below." };
-    if (await studentIdInUse(parsed.data.studentId)) return { error: DUPLICATE_STUDENT_ID, field: "studentId" };
-  } catch { return { error: "Registration is temporarily unavailable. Your details are kept below. Please try again later." }; }
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({
-    email: parsed.data.email,
-    password: parsed.data.password,
-    options: { data: { full_name: parsed.data.fullName, student_id: parsed.data.studentId, year_section: parsed.data.yearSection, group_number: parsed.data.groupNumber, contact_number: parsed.data.contactNumber } },
-  });
-  if (error) {
-    // The unique index also handles races after the preflight availability check.
-    if (error.status && error.status >= 500) {
-      try { if (await studentIdInUse(parsed.data.studentId)) return { error: DUPLICATE_STUDENT_ID, field: "studentId" }; }
-      catch { /* Return the safe provider error below. */ }
-    }
-    return { error: registrationErrorMessage(error) };
-  }
-  if (data.session) {
-    // Establish password proof before sending the inbox verification code.
-    const loginForm = new FormData();
-    loginForm.set("email", parsed.data.email);
-    loginForm.set("password", parsed.data.password);
-    await loginAction(loginForm);
-  }
-  await supabase.auth.signOut();
-  go("/login", "message", data.session
-    ? "Registration received. A custodian must approve your account before you can borrow tools."
-    : "Registration received. Check your inbox to confirm your email, then sign in. A custodian must also approve your account before you can borrow tools.");
+export async function registerAction(_formData: FormData): Promise<RegistrationState> {
+  void _formData;
+  return { error: "Self-registration is closed. Ask the tool custodian to create your account." };
 }
 
 export async function registerFormAction(_previous: RegistrationState, formData: FormData): Promise<RegistrationState> {
@@ -114,7 +80,7 @@ export async function changePasswordAction(formData: FormData) {
 export async function updateProfileAction(formData: FormData) {
   const profile = await requireProfile();
   const supabase = await createClient();
-  const parsed = profileSchema.safeParse({ fullName: value(formData, "full_name"), studentId: value(formData, "student_id"), yearSection: value(formData, "year_section"), groupNumber: value(formData, "group_number"), contactNumber: value(formData, "contact_number") });
+  const parsed = profileSchema.safeParse({ fullName: value(formData, "full_name"), studentId: value(formData, "student_id"), yearSection: value(formData, "year_section"), program: value(formData, "program"), contactNumber: value(formData, "contact_number") });
   if (!parsed.success || (profile.role === "student" && parsed.data.studentId.length < 2)) go("/profile", "error", "Check your profile details and field lengths.");
   let photoPath: string | null = null;
   const photo = formData.get("photo");
@@ -132,7 +98,7 @@ export async function updateProfileAction(formData: FormData) {
   }
   const { error } = await supabase.rpc("update_my_profile", {
     p_full_name: value(formData, "full_name"), p_student_id: value(formData, "student_id"),
-    p_year_section: value(formData, "year_section"), p_group_number: value(formData, "group_number"),
+    p_year_section: value(formData, "year_section"), p_group_number: profile.group_number ?? "",
     p_contact_number: value(formData, "contact_number"),
     ...(photoPath ? { p_photo_path: photoPath } : {}),
   });
@@ -141,7 +107,9 @@ export async function updateProfileAction(formData: FormData) {
     go("/profile", "error", "Profile could not be saved. Check that your Student ID is not already in use and try again.");
   }
   if (photoPath && profile.photo_path) await supabase.storage.from("profile-photos").remove([profile.photo_path]);
+  const { error: programError } = await supabase.auth.updateUser({ data: { program: parsed.data.program } });
   revalidatePath("/profile");
+  if (programError) go("/profile", "error", "Your profile was saved, but Course / Program could not be updated. Please retry that field.");
   go("/profile", "message", "Profile updated.");
 }
 

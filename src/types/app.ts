@@ -17,6 +17,7 @@ export interface Profile {
   group_number: string | null;
   contact_number: string | null;
   photo_path: string | null;
+  program?: string | null;
   qr_token: string;
   must_change_password: boolean;
   data_scope: DataScope;

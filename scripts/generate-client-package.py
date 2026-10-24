@@ -166,7 +166,7 @@ def build_guide():
     doc.add_heading("Prepare authorized staff", level=2)
     para(doc, "In User Management, open Create a staff account, choose the intended role and supply a one-time password of at least 10 characters. Give it privately. Personal staff finish configured verification and choose a private password before laboratory access. A password reset does not remove an enrolled authenticator.")
     doc.add_heading("Create and match physical assets", level=2)
-    para(doc, "In Tool Inventory, open Add a tool batch. Enter the tool name, category, quantity, condition and prefix; press Create assets & labels. A quantity of five creates five separately identified physical tools. Open Print labels or Print A4 sheet, print at 100% scale, and attach each code to its matching asset. Check the actual phone, lighting and printed label before making more.")
+    para(doc, "In Tool Inventory, open Add tools. Enter the tool name, category, quantity, condition and prefix; press Save tools & create labels. A quantity of five creates five separately identified physical tools. Open Print labels or Print A4 sheet, print at 100% scale, and attach each code to its matching asset. Check the actual phone, lighting and printed label before making more.")
     para(doc, "The QR identifies a record; it does not sign a person in. Keep passwords, sign-in codes and authenticator setup keys private.")
 
     page(doc, "Borrow and reconcile returns")

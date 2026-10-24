@@ -6,11 +6,16 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getAuthContext, requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { clearMfaVerificationAttempts, consumeMfaAttempt } from "@/lib/login-limit";
+import { clearMfaManagementAttemptsAfterRecovery, clearMfaVerificationAttempts, consumeMfaAttempt } from "@/lib/login-limit";
 import { mfaCodeSchema, mfaNameSchema } from "@/lib/validation";
 import type { MfaActionState } from "@/lib/mfa";
 import { serializeMfaOperation } from "@/lib/mfa-operation";
 import { authCookieOptions, IDLE_SECONDS, MAX_SESSION_SECONDS, SESSION_COOKIE, signSession } from "@/lib/session-policy";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { issueRecoveryCode } from "@/lib/mfa-recovery-store";
+import { matchesRecoveryCode, RECOVERY_METADATA_KEY } from "@/lib/mfa-recovery";
+import { createClient as createIsolatedClient } from "@supabase/supabase-js";
+import { requireSupabaseEnv } from "@/lib/env";
 
 function value(form: FormData, key: string) { return String(form.get(key) ?? ""); }
 
@@ -76,6 +81,7 @@ export async function verifyMfaAction(_previous: MfaActionState, form: FormData)
   if (!parsed.success) return { error: "Enter a valid authenticator and its six-digit code." };
   const blocked = await limit(context.profile.id, "verify");
   if (blocked) return blocked;
+  let saveRecovery = false;
   try {
     const result = await serializeMfaOperation(context.profile.id, async () => {
       const supabase = await createClient();
@@ -88,12 +94,67 @@ export async function verifyMfaAction(_previous: MfaActionState, form: FormData)
       const { error: verificationError } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code: parsed.data.code });
       if (verificationError) return { error: "Code was not accepted. Use the current code and try again." };
       if (!await persistVerifiedSession(supabase, context, true)) return { error: "Verification could not establish a secure session. Sign out and try again." };
+      if (factor.status === "unverified" && !factors.all.some(item => item.status === "verified")) {
+        return { message: "SAVE_RECOVERY_CODE" };
+      }
       return {};
     });
     if (result.error) return result;
+    saveRecovery = result.message === "SAVE_RECOVERY_CODE";
   } catch { return { error: "Authenticator verification is temporarily unavailable. Try again later." }; }
   revalidatePath("/", "layout");
+  if (saveRecovery) redirect("/recovery-code");
   redirect(context.profile.must_change_password ? "/change-password" : value(form, "manage") === "1" ? "/two-factor?manage=1&message=Authenticator%20added." : "/dashboard");
+}
+
+export async function generateRecoveryCodeAction(_previous: MfaActionState): Promise<MfaActionState> {
+  void _previous;
+  const context = await identity();
+  if (context.profile.data_scope === "demo" || context.aal !== "aal2") return { error: "Verify your authenticator before creating a recovery code." };
+  const blocked = await limit(context.profile.id, "manage");
+  if (blocked) return blocked;
+  try {
+    return await serializeMfaOperation(context.profile.id, async () => ({ recoveryCode: await issueRecoveryCode(context.profile.id) }), { requirePrivatePassword: !context.profile.must_change_password });
+  } catch { return { error: "Recovery code could not be created. Try again." }; }
+}
+
+export async function recoverMfaAction(_previous: MfaActionState, form: FormData): Promise<MfaActionState> {
+  const context = await identity();
+  if (context.profile.data_scope === "demo" || context.aal === "aal2") return { error: "Use authenticator settings to manage this account." };
+  const blocked = await limit(context.profile.id, "verify");
+  if (blocked) return blocked;
+  try {
+    const result = await serializeMfaOperation(context.profile.id, async () => {
+      const admin = createAdminClient();
+      const { data, error } = await admin.auth.admin.getUserById(context.profile.id);
+      const recovery = data?.user?.app_metadata?.[RECOVERY_METADATA_KEY];
+      if (error || !matchesRecoveryCode(context.profile.id, value(form, "recovery_code"), recovery?.hash)) return { error: "Recovery code is incorrect or already used." };
+      const env = requireSupabaseEnv();
+      const passwordClient = createIsolatedClient(env.supabaseUrl, env.supabasePublishableKey, { auth: { persistSession: false, autoRefreshToken: false } });
+      const { data: passwordProof, error: passwordError } = await passwordClient.auth.signInWithPassword({ email: context.profile.email, password: value(form, "password") });
+      await passwordClient.auth.signOut({ scope: "local" });
+      if (passwordError || passwordProof.user?.id !== context.profile.id) return { error: "Password is incorrect." };
+      // Consume before modifying provider factors. A crash fails closed; the code
+      // is never restored after partial recovery. The lease prevents double use.
+      const { error: consumeError } = await admin.auth.admin.updateUserById(context.profile.id, { app_metadata: { [RECOVERY_METADATA_KEY]: null } });
+      if (consumeError) return { error: "Recovery is unavailable. Try again later." };
+      const { data: factors, error: factorsError } = await admin.auth.admin.mfa.listFactors({ userId: context.profile.id });
+      if (factorsError || !factors) return { error: "Recovery could not finish. Ask the custodian for help." };
+      for (const factor of factors.factors) {
+        const { error: removalError } = await admin.auth.admin.mfa.deleteFactor({ userId: context.profile.id, id: factor.id });
+        if (removalError) return { error: "Recovery could not finish. Ask the custodian for help." };
+      }
+      await clearMfaManagementAttemptsAfterRecovery(context.profile.id);
+      return { message: "Recovered" };
+    });
+    if (result.error) return result;
+  } catch { return { error: "Recovery is temporarily unavailable. Try again later." }; }
+  // A recovery code permits replacement only, never AAL2 or portal access.
+  const supabase = await createClient();
+  await supabase.auth.signOut({ scope: "global" });
+  (await cookies()).delete(SESSION_COOKIE);
+  revalidatePath("/", "layout");
+  redirect("/login?message=Recovery%20code%20used.%20Sign%20in%20and%20link%20a%20new%20authenticator.");
 }
 
 export async function removeMfaAction(_previous: MfaActionState, form: FormData): Promise<MfaActionState> {

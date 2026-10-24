@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({ rpc: vi.fn() }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ rpc: state.rpc }) }));
-import { clearLoginAttempts, clearMfaVerificationAttempts, consumeLoginAttempt, consumeMfaAttempt } from "@/lib/login-limit";
+import { clearLoginAttempts, clearMfaVerificationAttempts, consumeLoginAttempt, consumeMfaAttempt, consumePasswordResetAttempt } from "@/lib/login-limit";
 beforeEach(() => { vi.stubEnv("SUPABASE_SECRET_KEY", "test-secret"); state.rpc.mockReset(); });
 afterEach(() => vi.unstubAllEnvs());
 it("normalizes email and stores only a keyed hash", async () => {
@@ -10,6 +10,13 @@ it("normalizes email and stores only a keyed hash", async () => {
   await consumeLoginAttempt("student@school.edu");
   expect(state.rpc.mock.calls[0]).toEqual(state.rpc.mock.calls[1]);
   expect(state.rpc.mock.calls[0][1].p_key).toMatch(/^[0-9a-f]{64}$/);
+});
+it("limits password reset by separate account and network buckets without storing raw identity", async () => {
+  state.rpc.mockResolvedValue({ data: true, error: null });
+  expect(await consumePasswordResetAttempt(" Student@School.edu ", "198.51.100.20")).toBe(true);
+  const keys = state.rpc.mock.calls.map(call => call[1].p_key); expect(new Set(keys).size).toBe(2); expect(keys.every(key => /^[a-f0-9]{64}$/.test(key))).toBe(true);
+  expect(JSON.stringify(state.rpc.mock.calls)).not.toContain("198.51.100.20"); expect(JSON.stringify(state.rpc.mock.calls)).not.toContain("Student");
+  state.rpc.mockResolvedValueOnce({ data: false, error: null }); expect(await consumePasswordResetAttempt("student@school.edu", "198.51.100.20")).toBe(false);
 });
 it("fails closed on a blocked account or unavailable database", async () => {
   state.rpc.mockResolvedValueOnce({ data: false, error: null });

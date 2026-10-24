@@ -46,7 +46,7 @@ it("exports each partial-return item's own return date and leaves outstanding it
   ];
   const response = await GET(new NextRequest("https://labtrack.test/api/reports/transactions.csv"));
   const rows = (await response.text()).split("\r\n").slice(1).map((row) => row.split(","));
-  expect(rows.map((row) => [row[8], row[6]])).toEqual([["ASSET-1", "2026-10-02T08:00:00Z"], ["ASSET-2", ""]]);
+  expect(rows.map((row) => [row[7], row[5]])).toEqual([["ASSET-1", "2026-10-02T08:00:00Z"], ["ASSET-2", ""]]);
 });
 
 it("preserves staggered item return dates after the entire transaction is completed", async () => {
@@ -57,5 +57,5 @@ it("preserves staggered item return dates after the entire transaction is comple
   ];
   const response = await GET(new NextRequest("https://labtrack.test/api/reports/transactions.csv"));
   const rows = (await response.text()).split("\r\n").slice(1).map((row) => row.split(","));
-  expect(rows.map((row) => [row[8], row[6]])).toEqual([["ASSET-1", "2026-10-02T08:00:00Z"], ["ASSET-2", "2026-10-03T09:00:00Z"]]);
+  expect(rows.map((row) => [row[7], row[5]])).toEqual([["ASSET-1", "2026-10-02T08:00:00Z"], ["ASSET-2", "2026-10-03T09:00:00Z"]]);
 });

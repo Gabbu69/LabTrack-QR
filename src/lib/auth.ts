@@ -28,7 +28,9 @@ export const getAuthContext = cache(async () => {
     if (verificationError) throw new Error("Account verification could not be loaded. Please try again.");
     emailOtpVerified = verified === true;
   }
-  return { profile: profile as Profile, aal: data?.claims?.aal, session, emailOtpVerified };
+  const metadata = data?.claims?.user_metadata as Record<string, unknown> | undefined;
+  const program = typeof metadata?.program === "string" ? metadata.program.slice(0, 80) : null;
+  return { profile: { ...profile, program } as Profile, aal: data?.claims?.aal, session, emailOtpVerified };
 });
 
 export const getProfile = cache(async (): Promise<Profile | null> => {

@@ -21,6 +21,7 @@ export default async function DashboardPage() {
       <div className="page-wrap student-dashboard">
         <PageHeader eyebrow="STUDENT MECHANIC LEADER" title={`Welcome, ${profile.full_name}`} description="Show your personal QR to the custodian when borrowing or returning laboratory tools." actions={<Link className="button button-primary" href="/my-qr"><QrCode aria-hidden="true" />Show my QR</Link>} />
         {profile.status === "pending" && <div className="notice warning"><UserCheck aria-hidden="true" /><div><strong>Approval pending</strong><p>Your profile is ready, but a custodian must approve it before tools can be issued.</p></div></div>}
+        <section className="student-next-steps" aria-label="How borrowing works"><h2>Borrowing is three simple steps</h2><ol><li><strong>Show your QR</strong><span>The custodian uses it to find your account.</span></li><li><strong>Check your tools</strong><span>Make sure the borrowed list matches what you receive.</span></li><li><strong>Return to the custodian</strong><span>Check that accepted returns leave your list.</span></li></ol></section>
         <section className="summary-grid">
           <article className="summary-card"><PackageCheck aria-hidden="true" /><span><small>Currently borrowed</small><strong>{snapshot.student.borrowed}</strong></span></article>
           <article className="summary-card warning"><History aria-hidden="true" /><span><small>Marked missing</small><strong>{snapshot.student.missing}</strong></span></article>

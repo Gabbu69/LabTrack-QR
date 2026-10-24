@@ -30,7 +30,7 @@ export default async function HistoryPrintPage({ searchParams }: { searchParams:
       <p className="report-explanation">Outstanding includes tools marked missing. Tool entries count each recorded handoff; the same asset can appear in more than one transaction.</p>
       {report.transactions.length === 0 ? <p className="report-empty">No transactions match these filters.</p> : report.transactions.map(transaction => <article className="report-transaction" key={transaction.id}>
         <div className="report-transaction-heading"><h2>{transaction.borrower_name_snapshot}</h2><span>{transaction.status}</span></div>
-        <p>{transaction.borrower_student_id_snapshot} · {transaction.borrower_year_section_snapshot || "Section not recorded"} · {transaction.borrower_group_snapshot || "Group not recorded"}</p>
+        <p>{transaction.borrower_student_id_snapshot} · {transaction.borrower_year_section_snapshot || "Section not recorded"}</p>
         <p>Borrowed: {formatLabDate(transaction.borrowed_at)} · Completed: {transaction.completed_at ? formatLabDate(transaction.completed_at) : "Outstanding"}</p>
         <p className="report-reference">Reference: {transaction.id}</p>
         <div className="table-wrap"><table><thead><tr><th>Asset / tool</th><th>Item status</th><th>Returned / condition</th><th>Notes</th></tr></thead><tbody>{(report.byTransaction.get(transaction.id) ?? []).map(item => <tr key={item.id}>

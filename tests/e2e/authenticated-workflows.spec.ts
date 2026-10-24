@@ -167,7 +167,7 @@ test.describe("authenticated release workflows", () => {
     await page.getByLabel("Confirm password").fill(privatePassword);
     await page.getByRole("button", { name: "Save password and continue" }).click();
     await expect(page).toHaveURL(/\/dashboard/);
-    await expect(page.getByRole("heading", { name: "Laboratory status" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Laboratory overview" })).toBeVisible();
 
     await page.getByRole("button", { name: "Log Out" }).click();
     await login(page, demoCustodianEmail, demoPassword!);
@@ -176,7 +176,7 @@ test.describe("authenticated release workflows", () => {
 
   test("instructor and student direct-route authorization is enforced", async ({ page }) => {
     await login(page, demoInstructorEmail, demoPassword!);
-    await expect(page.getByRole("heading", { name: "Laboratory status" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Laboratory overview" })).toBeVisible();
     await page.goto("/borrow");
     await expect(page).toHaveURL(/\/dashboard\?error=/);
     await page.getByRole("button", { name: "Log Out" }).click();

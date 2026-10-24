@@ -1,10 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import type { Database } from "@/types/database";
 import { requireSupabaseEnv } from "@/lib/env";
 import { authCookieOptions } from "@/lib/session-policy";
 
-export async function createClient() {
+// Reuse the client within one server render, never across users or requests.
+export const createClient = cache(async () => {
   const { supabaseUrl, supabasePublishableKey } = requireSupabaseEnv();
   const cookieStore = await cookies();
 
@@ -21,4 +23,4 @@ export async function createClient() {
       },
     },
   });
-}
+});
