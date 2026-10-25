@@ -110,7 +110,11 @@ export async function updateProfileAction(formData: FormData) {
     go("/profile", "error", "Profile could not be saved. Check that your Student ID is not already in use and try again.");
   }
   if (photoPath && profile.photo_path) await supabase.storage.from("profile-photos").remove([profile.photo_path]);
-  const { error: programError } = await supabase.auth.updateUser({ data: { program: parsed.data.program } });
+  // Disabled fields are omitted by the browser. Keep stored metadata when its
+  // freshness read was unavailable, while still allowing other profile edits.
+  const programError = formData.has("program")
+    ? (await supabase.auth.updateUser({ data: { program: parsed.data.program } })).error
+    : null;
   revalidatePath("/profile");
   if (programError) go("/profile", "error", "Your profile was saved, but Course / Program could not be updated. Please retry that field.");
   go("/profile", "message", "Profile updated.");
