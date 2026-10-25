@@ -17,6 +17,11 @@ try{
   const page=await context.newPage();page.setDefaultTimeout(60000);page.on('pageerror',e=>result.errors.push({role,path:new URL(page.url()).pathname,message:e.message}));
   page.on('requestfailed',request=>result.requestFailures.push({role,path:new URL(page.url()).pathname,url:request.url(),reason:request.failure()?.errorText,prefetch:request.headers()['next-router-prefetch']==='1'}));
   await page.goto(base+'/login');await page.getByLabel('Email address',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(process.env.DEMO_ACCOUNT_PASSWORD);await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.waitForURL('**/dashboard');
+  async function settle(){
+   // IntersectionObserver/router prefetches are scheduled after layout.
+   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+   await page.waitForLoadState('networkidle');
+  }
   async function fit(path,state){
    const issues=await page.evaluate(()=>{
     const bad=[];const root=document.documentElement;if(root.scrollWidth>root.clientWidth+1)bad.push({reason:'document overflow',width:root.scrollWidth,available:root.clientWidth});
@@ -35,14 +40,14 @@ try{
   for(const path of paths){
    // Let same-origin prefetches finish before deliberately replacing the whole
    // document. WebKit reports interrupted loads as access-control exceptions.
-   await page.waitForLoadState('networkidle');
+   await settle();
    await page.goto(base+path);await page.locator('h1').first().waitFor();
    if(path==='/tools'&&role==='custodian')await page.locator('#add-tools').evaluate(el=>el.open=true);
    if(path==='/users'&&role==='custodian'){
     await page.locator('details.content-card').evaluateAll(nodes=>nodes.forEach(el=>el.open=true));
     const reset=page.locator('details.inline-disclosure').first();if(await reset.count())await reset.evaluate(el=>el.open=true);
    }
-   for(const size of sizes){await page.setViewportSize(size);await fit(path,'default');
+   for(const size of sizes){await page.setViewportSize(size);await settle();await fit(path,'default');
     if(path==='/history'){
      if(role==='student'&&size.width===390)await page.screenshot({path:`output/responsive-qa/${label}-${engineName}-history-empty.png`,fullPage:true});
      await page.getByLabel('From',{exact:true}).fill('2020-01-01');await page.getByLabel('To',{exact:true}).fill('2030-12-31');await fit(path,'populated dates');
@@ -51,7 +56,7 @@ try{
     }
    }
    if(path==='/history'){
-    await page.setViewportSize({width:390,height:844});await page.getByLabel('From',{exact:true}).fill('2020-01-01');await page.getByLabel('To',{exact:true}).fill('2030-12-31');await page.waitForLoadState('networkidle');await page.getByRole('button',{name:'Apply',exact:true}).click();await page.waitForURL(url=>url.searchParams.get('from')==='2020-01-01'&&url.searchParams.get('to')==='2030-12-31');
+    await page.setViewportSize({width:390,height:844});await page.getByLabel('From',{exact:true}).fill('2020-01-01');await page.getByLabel('To',{exact:true}).fill('2030-12-31');await settle();await page.getByRole('button',{name:'Apply',exact:true}).click();await page.waitForURL(url=>url.searchParams.get('from')==='2020-01-01'&&url.searchParams.get('to')==='2030-12-31');
     await page.getByRole('heading',{name:role==='student'?'BORROWING HISTORY':'HISTORY & REPORTS',exact:true}).waitFor();
     assert.equal(await page.getByLabel('From',{exact:true}).inputValue(),'2020-01-01');assert.equal(await page.getByLabel('To',{exact:true}).inputValue(),'2030-12-31');
     for(const name of ['Export CSV','Print A4 report']){const href=await page.getByRole('link',{name,exact:true}).getAttribute('href');assert(href.includes('from=2020-01-01')&&href.includes('to=2030-12-31'));const response=await context.request.get(base+href);assert.equal(response.status(),200,name+' response');}
@@ -59,7 +64,7 @@ try{
     await page.evaluate(()=>{const nodes=[document.body,...document.body.querySelectorAll('*')];const sizes=nodes.map(el=>parseFloat(getComputedStyle(el).fontSize)*2);nodes.forEach((el,i)=>{if(el instanceof HTMLElement)el.style.fontSize=sizes[i]+'px';});});await fit(path,'200% text');
    }
   }
-  await page.waitForLoadState('networkidle');await context.close();console.log('PASS: completed '+role+' '+engineName+' responsive checks');
+  await settle();await context.close();console.log('PASS: completed '+role+' '+engineName+' responsive checks');
  }
 }finally{await browser.close();await writeFile(`output/responsive-qa/${label}-${engineName}.json`,JSON.stringify(result,null,2));}
 console.log(JSON.stringify({engine:engineName,checks:result.checks.length,failures:result.failures,errors:result.errors},null,2));assert.deepEqual(result.failures,[]);assert.deepEqual(result.errors,[]);
