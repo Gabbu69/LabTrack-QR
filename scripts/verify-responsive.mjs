@@ -4,7 +4,7 @@ import {chromium,webkit,firefox,devices} from 'playwright';
 const base=process.argv[2]??process.env.PLAYWRIGHT_BASE_URL??'http://localhost:3100';const engineName=process.argv[3]??'chromium';const label=process.argv[4]??'local';assert(['http://localhost:3100','https://labtrack-qr.vercel.app'].includes(base));
 const engine={chromium,webkit,firefox}[engineName];assert(engine);assert(/^[a-z0-9-]+$/.test(label));assert(process.env.DEMO_ACCOUNT_PASSWORD,'Private demo credential is required');await mkdir('output/responsive-qa',{recursive:true});
 const sizes=[{width:320,height:700},{width:375,height:812},{width:390,height:844},{width:414,height:896},{width:768,height:1024},{width:844,height:390},{width:1024,height:768},{width:1366,height:900}];
-const result={base,engine:engineName,checks:[],failures:[],errors:[],requestFailures:[]};
+const result={base,engine:engineName,checks:[],failures:[],errors:[],navigationCancellations:[],requestFailures:[]};
 const browser=await engine.launch();
 try{
  for(const [role,email,paths]of [
@@ -14,13 +14,32 @@ try{
  ]){
   const device=engineName==='webkit'?devices['iPhone 13']:engineName==='chromium'?devices['Pixel 7']:devices['Desktop Firefox'];
   const context=await browser.newContext({...device,viewport:{width:390,height:844},reducedMotion:'reduce'});
-  const page=await context.newPage();page.setDefaultTimeout(60000);page.on('pageerror',e=>result.errors.push({role,path:new URL(page.url()).pathname,message:e.message}));
+  let replacingDocument=false;
+  const page=await context.newPage();page.setDefaultTimeout(60000);
+  page.on('pageerror',e=>{
+   const entry={role,path:new URL(page.url()).pathname,message:e.message};
+   // WebKit reports rejected prefetches during deliberate document teardown as
+   // access-control page errors. Keep them in the report, but only classify
+   // same-origin RSC loads while our own hard navigation/close is in progress.
+   // https://github.com/microsoft/playwright/issues/42823
+   let canceledPrefetch=false;
+   if(engineName==='webkit'&&replacingDocument&&e.message.endsWith(' due to access control checks.')){
+    const origin=new URL(base);const start=e.message.indexOf(origin.host+'/');
+    if(start>=0){try{const url=new URL(origin.protocol+'//'+e.message.slice(start).split(' due to ')[0]);canceledPrefetch=url.origin===origin.origin&&url.searchParams.has('_rsc');}catch{}}
+   }
+   (canceledPrefetch?result.navigationCancellations:result.errors).push(entry);
+  });
   page.on('requestfailed',request=>result.requestFailures.push({role,path:new URL(page.url()).pathname,url:request.url(),reason:request.failure()?.errorText,prefetch:request.headers()['next-router-prefetch']==='1'}));
   await page.goto(base+'/login');await page.getByLabel('Email address',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(process.env.DEMO_ACCOUNT_PASSWORD);await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.waitForURL('**/dashboard');
   async function settle(){
    // IntersectionObserver/router prefetches are scheduled after layout.
    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
    await page.waitForLoadState('networkidle');
+  }
+  async function open(path){
+   await settle();replacingDocument=true;
+   try{await page.goto(base+path);await page.locator('h1').first().waitFor();assert.equal(new URL(page.url()).pathname,path);await settle();}
+   finally{replacingDocument=false;}
   }
   async function fit(path,state){
    const issues=await page.evaluate(()=>{
@@ -38,10 +57,7 @@ try{
    const entry={role,path,state,...page.viewportSize()};result.checks.push(entry);if(issues.length)result.failures.push({...entry,issues});
   }
   for(const path of paths){
-   // Let same-origin prefetches finish before deliberately replacing the whole
-   // document. WebKit reports interrupted loads as access-control exceptions.
-   await settle();
-   await page.goto(base+path);await page.locator('h1').first().waitFor();
+   await open(path);
    if(path==='/tools'&&role==='custodian')await page.locator('#add-tools').evaluate(el=>el.open=true);
    if(path==='/users'&&role==='custodian'){
     await page.locator('details.content-card').evaluateAll(nodes=>nodes.forEach(el=>el.open=true));
@@ -64,7 +80,7 @@ try{
     await page.evaluate(()=>{const nodes=[document.body,...document.body.querySelectorAll('*')];const sizes=nodes.map(el=>parseFloat(getComputedStyle(el).fontSize)*2);nodes.forEach((el,i)=>{if(el instanceof HTMLElement)el.style.fontSize=sizes[i]+'px';});});await fit(path,'200% text');
    }
   }
-  await settle();await context.close();console.log('PASS: completed '+role+' '+engineName+' responsive checks');
+  await settle();replacingDocument=true;await context.close();console.log('PASS: completed '+role+' '+engineName+' responsive checks');
  }
 }finally{await browser.close();await writeFile(`output/responsive-qa/${label}-${engineName}.json`,JSON.stringify(result,null,2));}
-console.log(JSON.stringify({engine:engineName,checks:result.checks.length,failures:result.failures,errors:result.errors},null,2));assert.deepEqual(result.failures,[]);assert.deepEqual(result.errors,[]);
+console.log(JSON.stringify({engine:engineName,checks:result.checks.length,failures:result.failures,errors:result.errors,navigationCancellations:result.navigationCancellations.length},null,2));assert.deepEqual(result.failures,[]);assert.deepEqual(result.errors,[]);
