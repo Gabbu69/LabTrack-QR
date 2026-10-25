@@ -16,6 +16,17 @@ test.beforeEach(async ({page,baseURL})=>{
 async function fit(page: Page, label: string) {
   const overflow = await page.evaluate(() => ({ scroll:document.documentElement.scrollWidth, client:document.documentElement.clientWidth }));
   expect.soft(overflow.scroll, `${label}: document overflow`).toBeLessThanOrEqual(overflow.client);
+  // An overflow:hidden card can clip controls while the document still fits.
+  const clipped = await page.locator("form input, form select, form textarea").evaluateAll(controls => controls.flatMap(control => {
+    const rect = control.getBoundingClientRect();
+    if (!rect.width || !rect.height) return [];
+    const container = control.closest(".filter-bar, .form-grid, .form-stack, .manual-scan") ?? control.closest("form");
+    if (!container) return [];
+    const bounds = container.getBoundingClientRect();
+    return rect.left < bounds.left - 1 || rect.right > bounds.right + 1
+      ? [{ name: control.getAttribute("name"), width: rect.width, containerWidth: bounds.width }] : [];
+  }));
+  expect.soft(clipped, `${label}: controls clipped inside their form`).toEqual([]);
   await expect(page.getByRole('heading', {name:'This page could not load',exact:true})).toHaveCount(0);
 }
 async function expectedContent(page: Page, role: string, path: string) {

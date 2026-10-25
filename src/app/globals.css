@@ -832,3 +832,27 @@ input, select, textarea { font-size: 16px; }
 .portal-nav-link { position: relative; }
 .nav-pending { position: absolute; right: .25rem; top: calc(50% - .3125rem); width: .625rem; height: .625rem; border-radius: 50%; background: currentColor; opacity: 0; }
 .nav-pending.is-pending { opacity: .65; }
+
+/* Let native form controls shrink within their cards on every browser. */
+.form-stack, .form-grid, .filter-bar, .password-input-wrap,
+.manual-scan, .return-controls, .missing-box { min-width: 0; }
+.form-stack > label, .form-grid > label, .filter-bar > *,
+.manual-scan > label, .return-controls > label,
+.page-header > div { min-width: 0; max-width: 100%; }
+:is(.form-stack, .form-grid, .filter-bar, .manual-scan, .return-controls, .missing-box, .inline-disclosure) :is(input, select, textarea) { min-width: 0; max-width: 100%; }
+.filter-bar { flex-wrap: wrap; }
+.filter-bar .search-field { min-width: 0; flex: 1 1 240px; }
+.date-filter { width: 160px; grid-template-columns: minmax(0, 1fr); }
+
+/* iOS date controls miscalculate 100% width when padding is on the input
+   (WebKit #301648). Put the border/padding on a shrinkable wrapper instead;
+   the input remains type=date with its native picker and submitted value. */
+.date-input-shell { display: flex; align-items: center; min-width: 0; width: 100%; min-height: 46px; padding: 0 12px; border: 1px solid #aeb8c7; border-radius: 8px; background: white; }
+.filter-bar .date-input-shell input[type="date"] { display: block; flex: 1 1 0; width: 100%; min-width: 0; max-width: 100%; min-height: 44px; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; appearance: none; -webkit-appearance: none; line-height: 1.5; }
+.date-input-shell:focus-within { outline: 3px solid #0781b2; outline-offset: 3px; }
+.date-input-shell input:focus-visible { outline: none; }
+.date-input-shell input::-webkit-date-and-time-value { min-height: 1.5em; text-align: left; }
+.date-input-shell input::-webkit-datetime-edit { display: block; min-width: 0; padding: 0; }
+@media (max-width: 720px) {
+  .filter-bar > *, .filter-bar .search-field { width: 100%; flex: 0 1 auto; }
+}
