@@ -7,7 +7,17 @@ permissions:
   contents: read
 
 jobs:
+  availability:
+    if: vars.ENABLE_SEEDED_DEMO_CHECKS != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain the seeded demo prerequisite
+        run: |
+          echo 'The shared demo accounts were retired during the client account reset.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'This optional suite requires its designated seeded demo accounts. Enable ENABLE_SEEDED_DEMO_CHECKS only after those prerequisites are deliberately restored in the configured test environment.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Client accounts require their own authenticators and must not be substituted into this password-only demo suite. The regular application CI remains enabled.' >> "$GITHUB_STEP_SUMMARY"
   responsive:
+    if: vars.ENABLE_SEEDED_DEMO_CHECKS == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
