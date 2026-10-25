@@ -103,6 +103,17 @@ it("retains failed attempts and blocks after five rejected passwords", async () 
   await expect(loginAction(form())).rejects.toThrow("/login?error=Too");
   expect(state.clear).not.toHaveBeenCalled(); expect(state.set).not.toHaveBeenCalled();
 });
+it("gives each rejected password a fresh form reset key without putting credentials in the URL", async () => {
+  state.passwordError = true;
+  const urls: string[] = [];
+  for (let index = 0; index < 2; index++) {
+    try { await loginAction(form()); } catch (error) { urls.push((error as Error).message); }
+  }
+  expect(urls).toHaveLength(2);
+  expect(urls[0]).toMatch(/&reset=[0-9a-f-]{36}$/);
+  expect(urls[0]).not.toBe(urls[1]);
+  for (const url of urls) { expect(url).not.toContain("student@school.test"); expect(url).not.toContain("test-password"); }
+});
 it("signs out if successful authentication cannot reset the password counter", async () => {
   state.clear.mockRejectedValueOnce(new Error("private database detail"));
   await expect(loginAction(form())).rejects.toThrow("/login?error=Sign-in");

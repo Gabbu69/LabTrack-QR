@@ -72,6 +72,51 @@ export async function createStaffAction(formData: FormData) {
   go("/users", "message", "Staff account created. Give the temporary password directly to the staff member.");
 }
 
+export async function deleteUserAction(formData: FormData) {
+  const actor = await requireCustodian();
+  const parsed = z.object({ profileId: z.uuid(), email: z.string().trim().toLowerCase().pipe(z.email()) })
+    .safeParse({ profileId: value(formData, "profile_id"), email: value(formData, "confirmation_email") });
+  if (!parsed.success) go("/users", "error", "Invalid account deletion. Reload and try again.");
+  const { profileId, email } = parsed.data;
+  if (profileId === actor.id) go("/users", "error", "You cannot delete your current account.");
+  const supabase = await createClient();
+  const { data: target, error: targetError } = await supabase.from("profiles").select("id,email,data_scope").eq("id", profileId).maybeSingle();
+  if (targetError || !target || target.data_scope !== actor.data_scope) go("/users", "error", "Account not found in your scope.");
+  if (isSharedDemoIdentity(target)) go("/users", "error", SHARED_DEMO_ACCOUNT_NOTICE);
+  if (target.email !== email) go("/users", "error", "The account changed. Reload before deleting it.");
+
+  const admin = createAdminClient();
+  // Admin reads avoid mistaking a record hidden by RLS for an unused account.
+  const references = await Promise.all([
+    admin.from("tools").select("id").eq("created_by", profileId).limit(1),
+    admin.from("transactions").select("id").or(`borrower_id.eq.${profileId},processed_by.eq.${profileId}`).limit(1),
+    admin.from("transaction_items").select("id").eq("returned_by", profileId).limit(1),
+  ]);
+  if (references.some(result => result.error)) go("/users", "error", "Account records could not be checked. No account was deleted. Try again.");
+  if (references.some(result => result.data?.length)) go("/users", "error", "This user is linked to tools or borrowing and return history. Use Disable to remove access while keeping those records.");
+
+  // Supabase refuses Auth deletion while the user owns Storage objects.
+  // Collect every flat upload in this user's private photo folder first.
+  const bucket = admin.storage.from("profile-photos");
+  const paths: string[] = [];
+  for (let offset = 0; ; offset += 100) {
+    const { data, error } = await bucket.list(profileId, { limit: 100, offset, sortBy: { column: "name", order: "asc" } });
+    if (error || data?.some(file => !file.id)) go("/users", "error", "Profile photos could not be checked. No account was deleted. Try again.");
+    for (const file of data ?? []) paths.push(`${profileId}/${file.name}`);
+    if (!data || data.length < 100) break;
+  }
+  for (let offset = 0; offset < paths.length; offset += 100) {
+    const { error } = await bucket.remove(paths.slice(offset, offset + 100));
+    if (error) go("/users", "error", "Profile photos could not be removed. The account is still present. Try again.");
+  }
+  const { error } = await admin.auth.admin.deleteUser(profileId);
+  // Database foreign keys and the last-custodian trigger remain the final guard
+  // if a new reference or a concurrent account change occurs after the reads.
+  if (error) go("/users", "error", "The account could not be deleted. Reload and check for linked records, or use Disable to remove access.");
+  revalidatePath("/users"); revalidatePath("/dashboard");
+  go("/users", "message", "User account permanently deleted.");
+}
+
 export async function createStudentAction(formData: FormData) {
   const actor = await requireCustodian();
   const parsed = z.object({

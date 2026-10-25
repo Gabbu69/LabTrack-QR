@@ -32,7 +32,10 @@ export async function loginAction(formData: FormData) {
   if (!allowed) go("/login", "error", "Too many sign-in attempts. Please wait 15 minutes before trying again.");
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
-  if (error || !data.user) go("/login", "error", signInErrorMessage(error ?? {}));
+  if (error || !data.user) {
+    // A fresh key also resets consecutive failures with the same error message.
+    redirect(`/login?error=${encodeURIComponent(signInErrorMessage(error ?? {}))}&reset=${crypto.randomUUID()}`);
+  }
   try { await clearLoginAttempts(parsed.data.email); }
   catch { await supabase.auth.signOut(); go("/login", "error", "Sign-in is temporarily unavailable. Please try again later."); }
   const { data: profile } = await supabase.from("profiles").select("status,must_change_password,data_scope").eq("id", data.user.id).maybeSingle();
