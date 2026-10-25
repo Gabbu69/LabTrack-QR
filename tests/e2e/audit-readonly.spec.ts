@@ -19,7 +19,7 @@ async function fit(page: Page, label: string) {
   // An overflow:hidden card can clip controls while the document still fits.
   const clipped = await page.locator("form input, form select, form textarea").evaluateAll(controls => controls.flatMap(control => {
     const rect = control.getBoundingClientRect();
-    if (!rect.width || !rect.height) return [];
+    if (!rect.width || !rect.height || control.closest("details:not([open])")) return [];
     const container = control.closest(".filter-bar, .form-grid, .form-stack, .manual-scan") ?? control.closest("form");
     if (!container) return [];
     const bounds = container.getBoundingClientRect();

@@ -20,7 +20,7 @@ try{
    const issues=await page.evaluate(()=>{
     const bad=[];const root=document.documentElement;if(root.scrollWidth>root.clientWidth+1)bad.push({reason:'document overflow',width:root.scrollWidth,available:root.clientWidth});
     for(const control of document.querySelectorAll('form input, form select, form textarea')){
-     const r=control.getBoundingClientRect();if(!r.width||!r.height)continue;
+     const r=control.getBoundingClientRect();if(!r.width||!r.height||control.closest('details:not([open])'))continue;
      const parent=control.closest('.filter-bar,.form-grid,.form-stack,.manual-scan')??control.closest('form');if(!parent)continue;const p=parent.getBoundingClientRect();
      if(r.left<p.left-1||r.right>p.right+1)bad.push({reason:'control outside form',name:control.name,width:r.width,available:p.width});
      const card=control.closest('.content-card');if(card){const c=card.getBoundingClientRect();if(r.left<c.left-1||r.right>c.right+1)bad.push({reason:'control clipped by card',name:control.name,width:r.width,available:c.width});}
@@ -34,7 +34,10 @@ try{
   for(const path of paths){
    await page.goto(base+path);await page.locator('h1').first().waitFor();
    if(path==='/tools'&&role==='custodian')await page.locator('#add-tools').evaluate(el=>el.open=true);
-   if(path==='/users'&&role==='custodian')await page.locator('details.content-card').evaluateAll(nodes=>nodes.forEach(el=>el.open=true));
+   if(path==='/users'&&role==='custodian'){
+    await page.locator('details.content-card').evaluateAll(nodes=>nodes.forEach(el=>el.open=true));
+    const reset=page.locator('details.inline-disclosure').first();if(await reset.count())await reset.evaluate(el=>el.open=true);
+   }
    for(const size of sizes){await page.setViewportSize(size);await fit(path,'default');
     if(path==='/history'){
      if(role==='student'&&size.width===390)await page.screenshot({path:`output/responsive-qa/${label}-${engineName}-history-empty.png`,fullPage:true});
