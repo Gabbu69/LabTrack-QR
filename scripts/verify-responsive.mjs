@@ -9,7 +9,7 @@ const browser=await engine.launch();
 try{
  for(const [role,email,paths]of [
   ['student','jordan.demo@labtrackqr2026.com',['/dashboard','/history','/borrowed','/my-qr','/profile']],
-  ['instructor','instructor.demo@labtrackqr2026.com',['/dashboard','/history','/tools','/scan','/users','/profile']],
+  ['instructor','instructor.demo@labtrackqr2026.com',['/dashboard','/history','/tools','/users','/profile']],
   ['custodian','custodian.demo@labtrackqr2026.com',['/dashboard','/history','/tools','/tools/labels','/borrow','/return','/scan','/users','/profile']]
  ]){
   const device=engineName==='webkit'?devices['iPhone 13']:engineName==='chromium'?devices['Pixel 7']:devices['Desktop Firefox'];
@@ -36,9 +36,9 @@ try{
    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
    await page.waitForLoadState('networkidle');
   }
-  async function open(path){
+  async function open(path,expectedPath=path){
    await settle();replacingDocument=true;
-   try{await page.goto(base+path);await page.locator('h1').first().waitFor();assert.equal(new URL(page.url()).pathname,path);await settle();}
+   try{await page.goto(base+path);await page.locator('h1').first().waitFor();assert.equal(new URL(page.url()).pathname,expectedPath);await settle();}
    finally{replacingDocument=false;}
   }
   async function fit(path,state){
@@ -79,6 +79,10 @@ try{
     result.checks.push({role,path,state:'Apply retains dates and passes filters to working CSV and A4 report'});
     await page.evaluate(()=>{const nodes=[document.body,...document.body.querySelectorAll('*')];const sizes=nodes.map(el=>parseFloat(getComputedStyle(el).fontSize)*2);nodes.forEach((el,i)=>{if(el instanceof HTMLElement)el.style.fontSize=sizes[i]+'px';});});await fit(path,'200% text');
    }
+  }
+  for(const path of role==='student'?['/users','/borrow','/return','/scan']:role==='instructor'?['/borrow','/return','/scan']:[]){
+   await open(path,'/dashboard');assert(new URL(page.url()).searchParams.has('error'));
+   result.checks.push({role,path,state:'Role guard rejects unauthorized workflow'});
   }
   await settle();replacingDocument=true;await context.close();console.log('PASS: completed '+role+' '+engineName+' responsive checks');
  }
