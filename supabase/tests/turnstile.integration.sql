@@ -27,7 +27,7 @@ reset role;
 set local role authenticated;
 select pg_temp.check_turnstile(public.turnstile_verified() and private.has_required_mfa(), 'server-attested password plus Turnstile permits AAL1 access');
 select pg_temp.check_turnstile((select count(*)=1 from public.tools), 'verified custodian can read operational inventory');
-select pg_temp.check_turnstile((select count(*)=1 from public.create_tool_batch('Verified Tool','','Testing',1,'TS','good')), 'verified custodian can use guarded RPC');
+select pg_temp.check_turnstile((select count(*)=1 from public.create_tool_batch('Verified Tool','','Testing',1,'TSV','good')), 'verified custodian can use guarded RPC');
 select set_config('request.jwt.claims','{"aal":"aal1","session_id":"e1000000-0000-4000-8000-000000000002"}',true);
 select pg_temp.check_turnstile(not public.turnstile_verified(), 'grant does not authorize another session of the same user');
 select set_config('request.jwt.claim.sub','e0000000-0000-4000-8000-000000000002',true);
