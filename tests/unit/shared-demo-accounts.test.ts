@@ -75,7 +75,7 @@ describe("shared account mutation guards", () => {
     state.target.email = "new.staff@school.test";
     await expect(changePasswordAction(form(passwordFields))).rejects.toThrow("REDIRECT:/dashboard");
     expect(state.passwordUpdate).toHaveBeenCalledWith(state.target, expect.any(Function), false);
-    expect(state.updateAuth).toHaveBeenCalledWith({ password: passwordFields.password });
+    expect(state.updateAuth).toHaveBeenCalledWith(state.target.id, { password: passwordFields.password });
   });
   it("allows temporary password resets and disabling for new demo staff", async () => {
     state.target.email = "new.staff@school.test";

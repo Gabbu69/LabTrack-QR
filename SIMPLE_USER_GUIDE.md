@@ -21,6 +21,6 @@ Ask the tool custodian for your account. Enter your email and password, complete
 
 Students show My QR and check Borrowed Tools. The custodian records all tool issues and returns. Instructors review records.
 
-Keep your password, setup key and recovery code private. A recovery code works once. Create a replacement under Profile → Two-factor authentication → Create recovery code; this invalidates your old code.
+Keep your password, setup key and recovery code private. A recovery code works once. Create a replacement under Profile → Recovery authenticator → verify your device → Create recovery code; this invalidates your old code.
 
 The original 20 sample tools are preserved. The custodian inventory also has 300 dummy tools, labeled `SAMPLE26-001` to `SAMPLE26-300`, for practice.
