@@ -19,6 +19,8 @@ The active project is `G:\LabTrack - QR\app`. Run `scripts/windows-workspace.ps1
 
 ## Start here
 
+Download the [client manual (PDF)](./public/docs/LabTrack-QR-Client-Manual.pdf) for the current sign-in, recovery, borrowing, returns, inventory, account, and reporting instructions. The same shareable manual is available on the [live website](https://labtrack-qr.vercel.app/docs/LabTrack-QR-Client-Manual.pdf), including a printable tool-counter checklist. Account passwords and private setup details are not included.
+
 For the simplified interface and everyday instructions, read [the simple user guide](./SIMPLE_USER_GUIDE.md). The current interface prioritizes Borrow tools, Return tools, and Manage inventory, with status shortcuts and a filtered inventory CSV download. Personal accounts use password plus Turnstile for sign-in and a linked authenticator for forgot password. See [current sign-in and recovery](./TURNSTILE_AND_RECOVERY.md).
 
 For a real custodian account, use [private custodian setup](./CUSTODIAN_ACCOUNT_SETUP.md): the project owner prepares a link for the named email, the custodian chooses a password, and sign-in uses password plus Turnstile; a recovery authenticator can be linked from Profile.
