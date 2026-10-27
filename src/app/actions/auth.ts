@@ -12,10 +12,11 @@ import { requireProfile } from "@/lib/auth";
 import { performPasswordUpdate } from "@/lib/password-operation";
 import { normalizeProfilePhoto } from "@/lib/profile-photo";
 import { loginSchema, passwordSchema, profileSchema } from "@/lib/validation";
-import { requiresMfa } from "@/lib/mfa";
-import { secondFactorPath, sendEmailOtp } from "@/lib/email-otp";
+import { verifyTurnstile, TURNSTILE_ERROR } from "@/lib/turnstile";
+import { recordTurnstileSession } from "@/lib/turnstile-session";
 import { signInErrorMessage } from "@/lib/auth-errors";
 import { type RegistrationState } from "@/lib/registration";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 function value(formData: FormData, key: string) { return String(formData.get(key) ?? ""); }
 function go(path: string, key: "error" | "message", message: string): never {
@@ -30,6 +31,9 @@ export async function loginAction(formData: FormData) {
   try { allowed = await consumeLoginAttempt(parsed.data.email); }
   catch { go("/login", "error", "Sign-in is temporarily unavailable. Please try again later."); }
   if (!allowed) go("/login", "error", "Too many sign-in attempts. Please wait 15 minutes before trying again.");
+  if (!await verifyTurnstile(value(formData, "cf-turnstile-response"), "login")) {
+    redirect(`/login?error=${encodeURIComponent(TURNSTILE_ERROR)}&reset=${crypto.randomUUID()}`);
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error || !data.user) {
@@ -45,17 +49,9 @@ export async function loginAction(formData: FormData) {
   const sessionId = verified?.claims?.session_id;
   if (claimsError || verified?.claims?.sub !== data.user.id || typeof sessionId !== "string") { await supabase.auth.signOut(); go("/login", "error", "Session could not be established. Please sign in again."); }
   const now = Math.floor(Date.now() / 1000);
+  try { await recordTurnstileSession(data.user.id, sessionId, now); }
+  catch { await supabase.auth.signOut(); go("/login", "error", "Secure sign-in is temporarily unavailable. Please try again later."); }
   (await cookies()).set(SESSION_COOKIE, signSession({ user: data.user.id, session: sessionId, started: now, seen: now }), { ...authCookieOptions, maxAge: IDLE_SECONDS });
-  if (requiresMfa(profile, verified?.claims?.aal)) {
-    let path: string;
-    try { path = await secondFactorPath(supabase); }
-    catch { await supabase.auth.signOut(); go("/login", "error", "Account verification is temporarily unavailable. Please try again later."); }
-    if (path === "/verify-email") {
-      const result = await sendEmailOtp(supabase, parsed.data.email, { user: data.user.id, session: sessionId, started: now, seen: now });
-      go(path, result.error ? "error" : "message", result.error ?? result.message!);
-    }
-    redirect(path);
-  }
   redirect(profile.must_change_password ? "/change-password" : "/dashboard");
 }
 
@@ -73,8 +69,10 @@ export async function changePasswordAction(formData: FormData) {
   if (isSharedDemoIdentity(profile)) go("/change-password", "error", SHARED_DEMO_ACCOUNT_NOTICE);
   const parsed = passwordSchema.safeParse({ password: value(formData, "password"), confirmation: value(formData, "confirmation") });
   if (!parsed.success) go("/change-password", "error", parsed.error.issues[0]?.message ?? "Check the new password.");
-  const supabase = await createClient();
-  const result = await performPasswordUpdate(profile, () => supabase.auth.updateUser({ password: parsed.data.password }), false);
+  // The application session has already passed password + Turnstile. Recovery
+  // factors must not force an AAL2 challenge during a routine password change.
+  const admin = createAdminClient();
+  const result = await performPasswordUpdate(profile, () => admin.auth.admin.updateUserById(profile.id, { password: parsed.data.password }), false);
   if (!result.ok) go("/change-password", "error", result.message);
   revalidatePath("/", "layout");
   redirect(profile.status === "disabled" ? "/login" : "/dashboard");

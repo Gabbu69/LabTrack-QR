@@ -48,7 +48,7 @@ beforeEach(() => {
 
 describe("signed authentication context", () => {
   it("retains an AAL1 identity for setup without granting portal access", async () => {
-    expect(await getAuthContext()).toEqual({ profile: { ...account, program: null }, aal: "aal1", session, emailOtpVerified: false });
+    expect(await getAuthContext()).toEqual({ profile: { ...account, program: null }, aal: "aal1", session, emailOtpVerified: false, turnstileVerified: false });
     expect(mocks.session).toHaveBeenCalledWith("signed-cookie", account.id, session.session);
     expect(mocks.from).toHaveBeenCalledWith("profiles");
     expect(mocks.eq).toHaveBeenCalledWith("id", account.id);
@@ -93,6 +93,22 @@ describe("signed authentication context", () => {
 });
 
 describe("portal authentication assurance", () => {
+  it("accepts password plus Turnstile only when the current provider session is attested by the database", async () => {
+    mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "turnstile_verified", error: null }));
+    expect(await getProfile()).toEqual(account);
+    expect(await requireProfile()).toEqual(account);
+    expect(mocks.rpc).toHaveBeenCalledWith("turnstile_verified");
+  });
+
+  it("does not trust editable metadata as Turnstile verification", async () => {
+    claims("aal1", { user_metadata: { turnstile_verified: true } });
+    expect(await getProfile()).toBeNull();
+  });
+
+  it("fails closed if the Turnstile grant lookup fails", async () => {
+    mocks.rpc.mockResolvedValue({ data: true, error: { message: "private detail" } });
+    await expect(getProfile()).rejects.toThrow("Account verification could not be loaded");
+  });
   it("accepts email verification only from the database for the signed provider session", async () => {
     mocks.session.mockReturnValue({ ...session, emailOtpSent: 15 });
     mocks.rpc.mockResolvedValue({ data: true, error: null });
@@ -113,7 +129,7 @@ describe("portal authentication assurance", () => {
   it.each(["aal1", undefined, null, "unknown"])("does not authorize operational access at assurance %s", async (aal) => {
     claims(aal);
     expect(await getProfile()).toBeNull();
-    await expect(requireProfile()).rejects.toThrow("REDIRECT:/two-factor");
+    await expect(requireProfile()).rejects.toThrow("REDIRECT:/login");
   });
 
   it("authorizes an operational AAL2 session", async () => {
@@ -144,7 +160,7 @@ describe("portal authentication assurance", () => {
 
   it("does not turn the password-change exception into an MFA bypass", async () => {
     mocks.profile.mockResolvedValue({ data: { ...account, must_change_password: true }, error: null });
-    await expect(requireProfile(undefined, { allowPasswordChange: true })).rejects.toThrow("REDIRECT:/two-factor");
+    await expect(requireProfile(undefined, { allowPasswordChange: true })).rejects.toThrow("REDIRECT:/login");
   });
 
   it("permits only explicit setup paths to use the pending identity", async () => {

@@ -1,13 +1,19 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { forgotPasswordAction } from "@/app/actions/forgot-password";
-const m = vi.hoisted(() => ({ limit: vi.fn(), reset: vi.fn(), removeCookie: vi.fn(), clearLogin: vi.fn() }));
+const m = vi.hoisted(() => ({ limit: vi.fn(), reset: vi.fn(), removeCookie: vi.fn(), clearLogin: vi.fn(), turnstile: vi.fn() }));
+vi.mock("@/lib/turnstile", () => ({ verifyTurnstile: m.turnstile, TURNSTILE_ERROR: "Security check failed or expired." }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers({ "x-forwarded-for": "198.51.100.20, 10.0.0.1" }), cookies: async () => ({ delete: m.removeCookie }) }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`REDIRECT:${path}`); } }));
 vi.mock("@/lib/login-limit", () => ({ consumePasswordResetAttempt: m.limit, clearLoginAttempts: m.clearLogin }));
 vi.mock("@/lib/forgot-password", () => ({ resetPasswordWithAuthenticator: m.reset }));
 vi.mock("@/lib/session-policy", () => ({ SESSION_COOKIE: "labtrack-session" }));
 function form() { const form = new FormData(); for (const [key, value] of Object.entries({ email: " Student@School.edu ", code: "123456", password: "NewPassword123", confirmation: "NewPassword123" })) form.set(key, value); return form; }
-beforeEach(() => { vi.clearAllMocks(); m.limit.mockResolvedValue(true); m.reset.mockResolvedValue({ ok: true }); });
+beforeEach(() => { vi.clearAllMocks(); m.limit.mockResolvedValue(true); m.reset.mockResolvedValue({ ok: true }); m.turnstile.mockResolvedValue(true); });
+it("rejects failed Turnstile before account lookup or resetting a password", async () => {
+  m.turnstile.mockResolvedValue(false);
+  expect((await forgotPasswordAction({}, form())).error).toContain("Security check");
+  expect(m.reset).not.toHaveBeenCalled(); expect(m.removeCookie).not.toHaveBeenCalled();
+});
 it.each(["email", "code", "password", "confirmation"])("rejects invalid %s before reaching the provider", async key => {
   const data = form(); data.set(key, "invalid"); expect((await forgotPasswordAction({}, data)).error).toBeTruthy(); expect(m.reset).not.toHaveBeenCalled();
 });

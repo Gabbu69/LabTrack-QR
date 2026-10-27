@@ -7,11 +7,14 @@ const state = vi.hoisted(() => ({
   attempts: 0, clear: vi.fn(),
   factorPath: "/two-factor", send: vi.fn(), signup: vi.fn(),
   studentIdCheck: vi.fn(),
+  turnstile: vi.fn(), record: vi.fn(), password: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(`REDIRECT:${url}`); } }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ set: state.set }) }));
 vi.mock("@/lib/env", () => ({ isSupabaseConfigured: () => true }));
+vi.mock("@/lib/turnstile", () => ({ verifyTurnstile: state.turnstile, TURNSTILE_ERROR: "Security check failed or expired. Please try again." }));
+vi.mock("@/lib/turnstile-session", () => ({ recordTurnstileSession: state.record }));
 vi.mock("@/lib/email-otp", () => ({ secondFactorPath: async () => state.factorPath, sendEmailOtp: state.send }));
 vi.mock("@/lib/registration", () => ({ studentIdInUse: state.studentIdCheck, DUPLICATE_STUDENT_ID: "This Student ID already has an account." }));
 vi.mock("@/lib/login-limit", () => ({
@@ -22,7 +25,7 @@ vi.mock("@/lib/session-policy", () => ({ authCookieOptions: { httpOnly: true }, 
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({
   auth: {
     signUp: state.signup,
-    signInWithPassword: async () => ({ data: { user: { id: "user" } }, error: state.passwordError ? { code: "bad_password" } : null }),
+    signInWithPassword: async () => { state.password(); return { data: { user: { id: "user" } }, error: state.passwordError ? { code: "bad_password" } : null }; },
     getClaims: async () => ({ data: { claims: state.claims }, error: state.claimsError ? {} : null }), signOut: state.signOut,
   },
   from: () => { const query = { select: () => query, eq: () => query, maybeSingle: async () => ({ data: state.profile }) }; return query; },
@@ -36,6 +39,7 @@ beforeEach(() => {
   state.factorPath = "/two-factor"; state.send.mockResolvedValue({ message: "Code sent." });
   state.signup.mockResolvedValue({ data: { session: { access_token: "fixture" } }, error: null });
   state.studentIdCheck.mockReset().mockResolvedValue(false);
+  state.turnstile.mockReset().mockResolvedValue(true); state.record.mockReset().mockResolvedValue(undefined);
 });
 function form() { const data = new FormData(); data.set("email", "student@school.test"); data.set("password", "test-password"); return data; }
 function registration() {
@@ -53,26 +57,29 @@ it.each(["valid", "invalid", "duplicate"])("blocks public registration for %s in
   expect(state.send).not.toHaveBeenCalled();
 });
 
-it("directs password-only real accounts to MFA, not the portal", async () => {
-  await expect(loginAction(form())).rejects.toThrow("REDIRECT:/two-factor");
+it("directs a Turnstile and password verified personal account to the portal", async () => {
+  await expect(loginAction(form())).rejects.toThrow("REDIRECT:/dashboard");
+  expect(state.turnstile).toHaveBeenCalledWith("", "login");
+  expect(state.record).toHaveBeenCalledWith("user", "session", expect.any(Number));
   expect(state.set).toHaveBeenCalledWith("labtrack-session", "signed-pending-session", expect.objectContaining({ httpOnly: true, maxAge: 1800 }));
 });
-it("requires MFA before changing a real account's temporary password", async () => {
+it("allows a verified sign-in to reach the mandatory password change", async () => {
   state.profile.must_change_password = true;
-  await expect(loginAction(form())).rejects.toThrow("REDIRECT:/two-factor");
+  await expect(loginAction(form())).rejects.toThrow("REDIRECT:/change-password");
 });
-it("sends an inbox code after password verification for a new personal account", async () => {
-  state.factorPath = "/verify-email";
-  await expect(loginAction(form())).rejects.toThrow("REDIRECT:/verify-email?message=Code%20sent.");
-  expect(state.send).toHaveBeenCalledWith(expect.anything(), "student@school.test", expect.objectContaining({ user: "user", session: "session" }));
+it("does not require email or authenticator during everyday sign-in", async () => {
+  await expect(loginAction(form())).rejects.toThrow("REDIRECT:/dashboard");
+  expect(state.send).not.toHaveBeenCalled();
 });
-it("keeps a new account outside the portal when email delivery fails", async () => {
-  state.factorPath = "/verify-email"; state.send.mockResolvedValue({ error: "Email unavailable." });
-  await expect(loginAction(form())).rejects.toThrow("REDIRECT:/verify-email?error=Email%20unavailable.");
+it("rejects failed Turnstile before password authentication or session creation", async () => {
+  state.turnstile.mockResolvedValue(false);
+  await expect(loginAction(form())).rejects.toThrow("/login?error=Security");
+  expect(state.password).not.toHaveBeenCalled(); expect(state.record).not.toHaveBeenCalled(); expect(state.set).not.toHaveBeenCalled();
 });
-it("requires email verification even while a new account awaits approval", async () => {
-  state.profile.status = "pending"; state.factorPath = "/verify-email";
-  await expect(loginAction(form())).rejects.toThrow("REDIRECT:/verify-email?message=");
+it("fails closed if the database cannot record the verified session", async () => {
+  state.record.mockRejectedValue(new Error("private database detail"));
+  await expect(loginAction(form())).rejects.toThrow("/login?error=Secure");
+  expect(state.set).not.toHaveBeenCalled(); expect(state.signOut).toHaveBeenCalledOnce();
 });
 it("keeps shared demo sign-in and forced-password flows usable", async () => {
   state.profile.data_scope = "demo"; await expect(loginAction(form())).rejects.toThrow("REDIRECT:/dashboard");

@@ -6,7 +6,7 @@ import { Notice } from "@/components/feedback/notice";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { getAuthContext, requireProfile } from "@/lib/auth";
+import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isSharedDemoIdentity, SHARED_DEMO_ACCOUNT_NOTICE } from "@/lib/demo-identities";
 import { ProfilePhotoPicker } from "@/components/forms/profile-photo-picker";
@@ -16,7 +16,6 @@ export const metadata = { title: "Profile" };
 
 export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ error?: string; message?: string }> }) {
   const profile = await requireProfile();
-  const context = await getAuthContext();
   const query = await searchParams;
   const supabase = await createClient();
   // User metadata can be newer than the current JWT after a profile edit.
@@ -38,8 +37,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       </section>
       <section className="profile-security" aria-labelledby="profile-security-title">
         <ShieldCheck aria-hidden="true" />
-        <div><h2 id="profile-security-title">Two-factor authentication</h2><p>{profile.data_scope === "demo" ? "Shared demo accounts are exempt. Personal accounts require a sign-in verification code." : context?.emailOtpVerified ? "Your password and an email verification code protect your account." : "Your password and authenticator code protect your account."}</p></div>
-        {profile.data_scope !== "demo" && <Link href="/two-factor?manage=1" className="button button-secondary"><Smartphone aria-hidden="true" />{context?.emailOtpVerified ? "Add an authenticator" : "Manage authenticators"}</Link>}
+        <div><h2 id="profile-security-title">Password recovery</h2><p>{profile.data_scope === "demo" ? "Ask the tool custodian for help with a shared demo account." : "Link an authenticator once so you can reset a forgotten password. Everyday sign-in uses your password and Turnstile."}</p></div>
+        {profile.data_scope !== "demo" && <Link href="/two-factor?manage=1" className="button button-secondary"><Smartphone aria-hidden="true" />Recovery authenticator</Link>}
       </section>
       <section className="content-card profile-card">
         <div className="profile-summary">

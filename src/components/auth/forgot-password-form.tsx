@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { forgotPasswordAction } from "@/app/actions/forgot-password";
 import { Notice } from "@/components/feedback/notice";
 import { PasswordField } from "@/components/forms/password-field";
+import { Turnstile } from "@/components/auth/turnstile";
 
 export function ForgotPasswordForm() {
   const [state, action, pending] = useActionState(forgotPasswordAction, {});
@@ -15,6 +16,7 @@ export function ForgotPasswordForm() {
     <label>Authenticator code<input name="code" type="text" value={code} onChange={event => setCode(event.target.value)} inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" minLength={6} maxLength={6} placeholder="000000" required /></label>
     <PasswordField label="New password" name="password" autoComplete="new-password" minLength={10} maxLength={128} hint="10+ characters, including a letter and a number." required />
     <PasswordField label="Confirm new password" name="confirmation" autoComplete="new-password" minLength={10} maxLength={128} required />
+    <Turnstile action="password_reset" resetKey={state} />
     <button className="button button-primary" type="submit" disabled={pending}>{pending ? "Resetting…" : "Reset password"}</button>
   </form>;
 }

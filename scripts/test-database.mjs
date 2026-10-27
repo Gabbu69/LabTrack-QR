@@ -49,6 +49,8 @@ try {
   console.log("PASS: MFA assurance, direct RPC/RLS/storage enforcement, demo isolation and role restrictions");
   await client.query(await readFile(new URL("../supabase/tests/email-otp.integration.sql", import.meta.url), "utf8"));
   console.log("PASS: email OTP session binding, server-only attestation, expiry, authenticator protection and approval boundaries");
+  await client.query(await readFile(new URL("../supabase/tests/turnstile.integration.sql", import.meta.url), "utf8"));
+  console.log("PASS: Turnstile session binding, server-only grants, direct RLS/RPC, expiry and revocation");
 
   // Committed fixtures are confined to this newly created disposable cluster.
   await client.query(`insert into auth.users (id,email,raw_user_meta_data,raw_app_meta_data) values
@@ -84,6 +86,10 @@ try {
   assert.deepEqual(limits.sort(), [false, true]);
   console.log("PASS: simultaneous login attempts cannot exceed the shared limit");
   await verifyFixtureRestore(client, connection, directory);
+  await client.query(await readFile(new URL("../supabase/rollbacks/20261027010000_turnstile_sessions.sql", import.meta.url), "utf8"));
+  await client.query(await readFile(new URL("../supabase/migrations/20261027010000_turnstile_sessions.sql", import.meta.url), "utf8"));
+  await client.query(await readFile(new URL("../supabase/tests/turnstile.integration.sql", import.meta.url), "utf8"));
+  console.log("PASS: Turnstile migration rollback and reapply");
 } finally {
   await client?.end(); await database.stop();
 }

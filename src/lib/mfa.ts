@@ -8,7 +8,7 @@ export type MfaActionState = {
   enrollment?: { factorId: string; uri: string; secret: string };
 };
 
-export function requiresMfa(profile: Pick<Profile, "data_scope">, aal: unknown, emailOtpVerified = false) {
+export function requiresMfa(profile: Pick<Profile, "data_scope">, aal: unknown, emailOtpVerified = false, turnstileVerified = false) {
   // Only the database-controlled demo scope is exempt, never email or user metadata.
-  return profile.data_scope !== "demo" && aal !== "aal2" && !emailOtpVerified;
+  return profile.data_scope !== "demo" && aal !== "aal2" && !emailOtpVerified && !turnstileVerified;
 }

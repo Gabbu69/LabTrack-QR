@@ -6,6 +6,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 const m = vi.hoisted(() => ({ action: vi.fn() }));
 vi.mock("@/app/actions/forgot-password", () => ({ forgotPasswordAction: m.action }));
+vi.mock("@/components/auth/turnstile", () => ({ Turnstile: () => null }));
 beforeEach(() => { m.action.mockReset().mockResolvedValue({ error: "Check your email and authenticator code." }); });
 afterEach(cleanup);
 it("asks for the authenticator code and new password without requiring the old password", () => {

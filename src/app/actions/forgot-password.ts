@@ -7,6 +7,7 @@ import { passwordSchema } from "@/lib/validation";
 import { clearLoginAttempts, consumePasswordResetAttempt } from "@/lib/login-limit";
 import { resetPasswordWithAuthenticator, type ForgotPasswordState } from "@/lib/forgot-password";
 import { SESSION_COOKIE } from "@/lib/session-policy";
+import { verifyTurnstile, TURNSTILE_ERROR } from "@/lib/turnstile";
 
 const inputSchema = passwordSchema.and(z.object({ email: z.string().trim().toLowerCase().max(254).pipe(z.email()), code: z.string().trim().regex(/^[0-9]{6}$/) }));
 
@@ -18,6 +19,7 @@ export async function forgotPasswordAction(_previous: ForgotPasswordState, form:
     const requestHeaders = await headers();
     const network = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
     if (!await consumePasswordResetAttempt(input.data.email, network)) return { error: "Too many reset attempts. Wait 15 minutes and try again." };
+    if (!await verifyTurnstile(String(form.get("cf-turnstile-response") ?? ""), "password_reset")) return { error: TURNSTILE_ERROR };
     const result = await resetPasswordWithAuthenticator(input.data.email, input.data.code, input.data.password);
     if (!result.ok) return { error: result.error };
   } catch { return { error: "Password reset is temporarily unavailable. Try again later." }; }

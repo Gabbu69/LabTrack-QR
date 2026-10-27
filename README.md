@@ -6,8 +6,8 @@ The application uses Next.js 16, React 19, TypeScript, Tailwind CSS, Supabase Po
 
 ## Included workflows
 
-- Custodian-created student and staff accounts, authenticator QR setup and sign-in, one-use recovery code, profile photos, personal QR, current custody, and history
-- Password plus authenticator verification for operational accounts; public sign-up is disabled
+- Custodian-created student and staff accounts, recovery authenticator QR setup, one-use recovery code, profile photos, personal QR, current custody, and history
+- Password plus Cloudflare Turnstile for sign-in; authenticator-based forgot password; public sign-up is disabled
 - Custodian dashboard, user management, temporary-password staff creation/reset, batch asset creation, individual tool QR labels, guided borrow, guided return, explicit missing-item handling, and CSV export
 - Instructor read-only inventory, borrower, transaction, and tool-history monitoring
 - A separate sample workspace with the 20 preserved sample tools and practice records
@@ -19,9 +19,9 @@ The active project is `G:\LabTrack - QR\app`. Run `scripts/windows-workspace.ps1
 
 ## Start here
 
-For the simplified interface and everyday instructions, read [the simple user guide](./SIMPLE_USER_GUIDE.md). The current interface prioritizes Borrow tools, Return tools, and Manage inventory, with status shortcuts and a filtered inventory CSV download. Personal accounts use authenticator-app verification; shared demos remain clearly labeled.
+For the simplified interface and everyday instructions, read [the simple user guide](./SIMPLE_USER_GUIDE.md). The current interface prioritizes Borrow tools, Return tools, and Manage inventory, with status shortcuts and a filtered inventory CSV download. Personal accounts use password plus Turnstile for sign-in and a linked authenticator for forgot password. See [current sign-in and recovery](./TURNSTILE_AND_RECOVERY.md).
 
-For a real custodian account, use [private custodian setup](./CUSTODIAN_ACCOUNT_SETUP.md): the project owner prepares a link for the named email, the custodian chooses a password, and sign-in proceeds to authenticator verification.
+For a real custodian account, use [private custodian setup](./CUSTODIAN_ACCOUNT_SETUP.md): the project owner prepares a link for the named email, the custodian chooses a password, and sign-in uses password plus Turnstile; a recovery authenticator can be linked from Profile.
 
 See [authenticator and recovery verification](./AUTHENTICATOR_RECOVERY_VERIFICATION_2026-10-24.md) for the current QR setup, one-use recovery, real-service trials and publication boundary.
 

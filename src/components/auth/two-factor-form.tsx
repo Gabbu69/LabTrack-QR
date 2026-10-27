@@ -76,10 +76,10 @@ function RemoveAuthenticator({ factor }: { factor: MfaFactor }) {
   );
 }
 
-export function TwoFactorForm({ factors, manage = false }: { factors: MfaFactor[]; manage?: boolean }) {
+export function TwoFactorForm({ factors, manage = false, verifyExisting = false }: { factors: MfaFactor[]; manage?: boolean; verifyExisting?: boolean }) {
   const [state, action, pending] = useActionState(enrollMfaAction, initialState);
   const enrollment = state.enrollment;
-  if (!manage && factors.length > 0) return <><VerificationForm factors={factors} /><RecoveryForm /></>;
+  if (verifyExisting || (!manage && factors.length > 0)) return <><VerificationForm factors={factors} manage={manage} /><RecoveryForm /></>;
 
   return (
     <div className="mfa-form-content">
@@ -92,9 +92,9 @@ export function TwoFactorForm({ factors, manage = false }: { factors: MfaFactor[
           <p className="mfa-help">Keep at least one verified authenticator. Add a backup before replacing your phone.</p>
         </section>
       )}
-      {manage && <RecoverySettings />}
+      {manage && factors.length > 0 && <RecoverySettings />}
       <section className="mfa-enrollment" aria-labelledby={manage ? "mfa-enrollment-title" : undefined} aria-label={manage ? undefined : "Authenticator setup"}>
-        {manage && <h2 id="mfa-enrollment-title">Add a backup authenticator</h2>}
+        {manage && <h2 id="mfa-enrollment-title">{factors.length ? "Add a backup authenticator" : "Link a recovery authenticator"}</h2>}
         <Notice error={state.error} message={state.message} />
         {enrollment ? (
           <div className="mfa-enrollment-ready">

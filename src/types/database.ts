@@ -281,6 +281,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+        turnstile_verified: { Args: Record<PropertyKey, never>; Returns: boolean }
+        record_turnstile_verification: {
+          Args: { p_user: string; p_session: string; p_expires_at: string }
+          Returns: undefined
+        }
       email_otp_verified: { Args: Record<PropertyKey, never>; Returns: boolean }
       record_email_otp_verification: {
         Args: { p_user: string; p_password_session: string; p_session: string; p_expires_at: string }

@@ -5,6 +5,7 @@ import { Notice } from "@/components/feedback/notice";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { PasswordField } from "@/components/forms/password-field";
 import { isSupabaseConfigured } from "@/lib/env";
+import { Turnstile } from "@/components/auth/turnstile";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; message?: string; reset?: string }> }) {
   const query = await searchParams;
@@ -15,10 +16,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <form key={query.reset ?? "initial"} action={loginAction} className="form-stack">
       <label>Email address<input name="email" type="email" autoFocus={Boolean(query.reset)} autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="you@school.edu" required /></label>
       <PasswordField label="Password" name="password" autoComplete="current-password" minLength={8} required />
+      <Turnstile action="login" />
       <SubmitButton pendingText="Signing in…">Sign in</SubmitButton>
     </form>
     <Link className="login-forgot-password text-link" href="/forgot-password">Forgot password?</Link>
-    <p className="login-authenticator-note"><ShieldCheck aria-hidden="true" /><span>Protected by your authenticator app.</span></p>
+    <p className="login-authenticator-note"><ShieldCheck aria-hidden="true" /><span>Protected by Cloudflare Turnstile. Your authenticator is for password recovery.</span></p>
     <details className="login-access-help"><summary>Need an account?</summary><p>Ask the tool custodian for your sign-in details.</p></details>
     <p className="login-footer">AISAT Davao · Laboratory tool management</p>
   </div>;

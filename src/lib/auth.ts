@@ -22,6 +22,8 @@ export const getAuthContext = cache(async () => {
   const { data: profile, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
   if (error) throw new Error("Account details could not be loaded. Please try again.");
   if (!profile) return null;
+  const { data: turnstileVerified, error: turnstileError } = await supabase.rpc("turnstile_verified");
+  if (turnstileError) throw new Error("Account verification could not be loaded. Please try again.");
   let emailOtpVerified = false;
   if (profile.data_scope !== "demo" && data?.claims?.aal !== "aal2" && session.emailOtpSent !== undefined) {
     const { data: verified, error: verificationError } = await supabase.rpc("email_otp_verified");
@@ -30,20 +32,20 @@ export const getAuthContext = cache(async () => {
   }
   const metadata = data?.claims?.user_metadata as Record<string, unknown> | undefined;
   const program = typeof metadata?.program === "string" ? metadata.program.slice(0, 80) : null;
-  return { profile: { ...profile, program } as Profile, aal: data?.claims?.aal, session, emailOtpVerified };
+  return { profile: { ...profile, program } as Profile, aal: data?.claims?.aal, session, emailOtpVerified, turnstileVerified: turnstileVerified === true };
 });
 
 export const getProfile = cache(async (): Promise<Profile | null> => {
   const context = await getAuthContext();
-  return context && !accessFailure(context.profile, {}, context.aal, context.emailOtpVerified) ? context.profile : null;
+  return context && !accessFailure(context.profile, {}, context.aal, context.emailOtpVerified, context.turnstileVerified) ? context.profile : null;
 });
 
 export async function requireProfile(roles?: AppRole[], options: AccessOptions = {}) {
   const context = await getAuthContext();
   const profile = context?.profile ?? null;
-  const failure = accessFailure(profile, { ...options, roles }, context?.aal, context?.emailOtpVerified);
+  const failure = accessFailure(profile, { ...options, roles }, context?.aal, context?.emailOtpVerified, context?.turnstileVerified);
   if (failure?.status === 401) redirect("/login");
-  if (failure?.code === "MFA_REQUIRED") redirect("/two-factor");
+  if (failure?.code === "MFA_REQUIRED") redirect("/login");
   if (failure?.code === "PASSWORD_CHANGE_REQUIRED") redirect("/change-password");
   if (failure) redirect(`${failure.code === "ACCOUNT_DISABLED" ? "/login" : "/dashboard"}?error=${encodeURIComponent(failure.message)}`);
   return profile!;

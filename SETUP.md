@@ -1,3 +1,7 @@
+# Current authentication setup
+
+Use [Turnstile and recovery](./TURNSTILE_AND_RECOVERY.md) for the current sign-in flow, environment variables and database migration. The MFA/email sections below document the earlier rollout and are retained for history.
+
 # Setup and Deployment
 
 Use Node **24.x**. Daily users need only the hosted website and their prepared account.

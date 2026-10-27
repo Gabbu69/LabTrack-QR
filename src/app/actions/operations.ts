@@ -137,7 +137,7 @@ export async function createStudentAction(formData: FormData) {
   const { error: profileError } = await admin.from("profiles").update({ full_name: parsed.data.fullName, student_id: parsed.data.studentId, year_section: parsed.data.yearSection, contact_number: parsed.data.contactNumber, role: "student", status: "active", data_scope: actor.data_scope, must_change_password: true }).eq("id", data.user.id);
   if (profileError) go("/users", "error", "The account was created, but its student profile needs attention. Contact the project owner before retrying.");
   revalidatePath("/users");
-  go("/users", "message", "Student account created. Give the temporary password privately. The student must verify their authenticator and choose a private password.");
+  go("/users", "message", "Student account created. Give the temporary password privately. The student signs in with Turnstile, chooses a private password, and can link a recovery authenticator from Profile.");
 }
 
 export async function resetPasswordAction(formData: FormData) {

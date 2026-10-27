@@ -4,7 +4,7 @@ vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ requireProfile: vi.fn(async () => ({ id: "actor", updated_at: "version", status: "active", must_change_password: true })) }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { updateUser: async (input: unknown) => { state.updatePassword(input); return { error: state.authError ? {} : null }; } } }) }));
-vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => { state.admin(); return { from: () => ({ update: (input: unknown) => { state.updateProfile(input); const chain = { eq: () => chain, is: () => chain, neq: () => chain, select: () => chain, maybeSingle: async () => ({ data: state.profileError ? null : { id: "actor" }, error: null }) }; return chain; } }) }; } }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => { state.admin(); return { auth: { admin: { updateUserById: async (_id: string, input: unknown) => { state.updatePassword(input); return { error: state.authError ? {} : null }; } } }, from: () => ({ update: (input: unknown) => { state.updateProfile(input); const chain = { eq: () => chain, is: () => chain, neq: () => chain, select: () => chain, maybeSingle: async () => ({ data: state.profileError ? null : { id: "actor" }, error: null }) }; return chain; } }) }; } }));
 import { changePasswordAction } from "@/app/actions/auth";
 beforeEach(() => { vi.clearAllMocks(); state.authError = false; state.profileError = false; });
 function form(password = "Private-test-99") { const data = new FormData(); data.set("password", password); data.set("confirmation", password); return data; }
