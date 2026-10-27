@@ -27,6 +27,13 @@ async function submit(button: HTMLElement) {
 }
 
 describe("two-factor UI", () => {
+  it("offers initial recovery setup from Profile without asking for a backup device or recovery code", () => {
+    render(createElement(TwoFactorForm, { factors: [], manage: true }));
+    expect(screen.getByRole("heading", { name: "Link a recovery authenticator" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Set up authenticator" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Create recovery code" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Have your backup device ready")).not.toBeInTheDocument();
+  });
   it("shows a private recovery code and save confirmation after initial verification", async () => {
     const code = "11111111-22222222-33333333-44444444";
     actions.generate.mockResolvedValue({ recoveryCode: code });

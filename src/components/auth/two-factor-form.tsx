@@ -78,6 +78,7 @@ function RemoveAuthenticator({ factor }: { factor: MfaFactor }) {
 
 export function TwoFactorForm({ factors, manage = false, verifyExisting = false }: { factors: MfaFactor[]; manage?: boolean; verifyExisting?: boolean }) {
   const [state, action, pending] = useActionState(enrollMfaAction, initialState);
+  const addingBackup = manage && factors.length > 0;
   const enrollment = state.enrollment;
   if (verifyExisting || (!manage && factors.length > 0)) return <><VerificationForm factors={factors} manage={manage} /><RecoveryForm /></>;
 
@@ -106,9 +107,9 @@ export function TwoFactorForm({ factors, manage = false, verifyExisting = false 
         ) : (
           <form action={action} className="form-stack">
             {manage && <input type="hidden" name="manage" value="1" />}
-            <div className="mfa-prepare"><Smartphone aria-hidden="true" /><div><strong>{manage ? "Have your backup device ready" : "Have your phone ready"}</strong><p>Open Google Authenticator or Microsoft Authenticator.</p></div></div>
-            <label>Authenticator name <small>optional</small><input name="friendly_name" type="text" maxLength={60} placeholder={manage ? "Backup phone" : "My phone"} autoComplete="off" /></label>
-            <button type="submit" className="button button-primary" disabled={pending}>{manage ? <Plus aria-hidden="true" /> : <Smartphone aria-hidden="true" />}{pending ? "Preparing setup..." : manage ? "Add authenticator" : "Set up authenticator"}</button>
+            <div className="mfa-prepare"><Smartphone aria-hidden="true" /><div><strong>{addingBackup ? "Have your backup device ready" : "Have your phone ready"}</strong><p>Open Google Authenticator or Microsoft Authenticator.</p></div></div>
+            <label>Authenticator name <small>optional</small><input name="friendly_name" type="text" maxLength={60} placeholder={addingBackup ? "Backup phone" : "My phone"} autoComplete="off" /></label>
+            <button type="submit" className="button button-primary" disabled={pending}>{addingBackup ? <Plus aria-hidden="true" /> : <Smartphone aria-hidden="true" />}{pending ? "Preparing setup..." : addingBackup ? "Add authenticator" : "Set up authenticator"}</button>
           </form>
         )}
       </section>
