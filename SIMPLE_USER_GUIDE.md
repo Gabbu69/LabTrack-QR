@@ -2,7 +2,7 @@
 
 ## Sign in
 
-Ask the tool custodian for your account. Enter your email and password, then the current code from your authenticator app. On first use, scan the QR with Google Authenticator or Microsoft Authenticator, enter its six-digit code, and download your recovery code. Replace your temporary password when prompted.
+Ask the tool custodian for your account. Enter your email and password, complete Turnstile, and sign in. Replace your temporary password when prompted. To prepare for a forgotten password, open Profile → Recovery authenticator and link Google Authenticator or Microsoft Authenticator once. You do not need its code for everyday sign-in.
 
 ## Everyday tasks
 
@@ -16,8 +16,8 @@ Ask the tool custodian for your account. Enter your email and password, then the
 | Reports | Open History & Reports → filter → print or export CSV. |
 | Help | After login, press the circle question mark at the top right. |
 | Log out | Press Log Out → Yes, log out. Choose Stay signed in to cancel. |
-| Forgot password | On Sign in, choose Forgot password? → enter your email, authenticator code, and new password → Reset password → sign in again. |
-| Lost phone | After entering your sign-in details, choose Use recovery code → enter your password and saved code → sign in again → link a new authenticator. |
+| Forgot password | On Sign in, choose Forgot password? → enter your email, linked authenticator code, and new password → complete Turnstile → Reset password → sign in again. |
+| Lost phone | If you know your password, sign in normally. For recovery-device help or a forgotten password without authenticator access, ask the tool custodian privately. |
 
 Students show My QR and check Borrowed Tools. The custodian records all tool issues and returns. Instructors review records.
 

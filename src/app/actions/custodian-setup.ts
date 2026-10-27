@@ -39,6 +39,6 @@ export async function createCustodianAccountAction(_previous: { error?: string }
     }
   } catch { return { error: "Setup could not be completed. If you already created your account, sign in. Otherwise try again later." }; }
   // Do not create an authenticated session using an admin credential. The owner
-  // now signs in with their chosen password, then completes real TOTP enrollment.
-  redirect("/login?message=Custodian%20account%20created.%20Sign%20in%20with%20your%20chosen%20password%2C%20then%20link%20your%20authenticator%20app.");
+  // now signs in with their chosen password and Turnstile.
+  redirect("/login?message=Custodian%20account%20created.%20Sign%20in%20with%20your%20password%20and%20Turnstile.%20Link%20a%20recovery%20authenticator%20from%20Profile.");
 }

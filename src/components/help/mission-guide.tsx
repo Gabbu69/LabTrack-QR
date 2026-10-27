@@ -5,14 +5,14 @@ import type { GuideRole } from "@/lib/guide-missions";
 type HelpTopic = { title: string; href: string; steps: string[] };
 const shared: HelpTopic[] = [
   { title: "Profile & photo", href: "/profile", steps: ["Update your details or choose a picture.", "Press Save profile."] },
-  { title: "Authenticator & sign-out", href: "/profile", steps: ["Use the current six-digit code when signing in.", "Add a backup under Manage authenticators before changing phones.", "To leave, press Log Out → Yes, log out."] },
+  { title: "Recovery & sign-out", href: "/profile", steps: ["Sign in with your password and Turnstile.", "Link an authenticator under Profile → Recovery authenticator for forgotten passwords.", "To leave, press Log Out → Yes, log out."] },
 ];
 const topics: Record<GuideRole, HelpTopic[]> = {
   custodian: [
     { title: "Borrow tools", href: "/borrow", steps: ["Scan the student QR or enter their Student ID.", "Scan each tool, then check the list.", "Press Confirm checkout."] },
     { title: "Return tools", href: "/return", steps: ["Identify the student.", "Scan received tools and check their condition.", "Press Confirm return. Unscanned tools stay outstanding."] },
     { title: "Tools & QR labels", href: "/tools", steps: ["Use Add tools to save equipment.", "Print labels and match each code to its tool.", "Use status filters to find available or missing tools."] },
-    { title: "Create an account", href: "/users", steps: ["Choose Create a student account or Create a staff account.", "Enter their details and a temporary password.", "Give the password privately. They will link an authenticator and choose a new password."] },
+    { title: "Create an account", href: "/users", steps: ["Choose Create a student account or Create a staff account.", "Enter their details and a temporary password.", "Give the password privately. They sign in with Turnstile and choose a new password."] },
     { title: "Reports", href: "/history", steps: ["Search or filter the records.", "Choose Print A4 report or Export CSV."] },
     ...shared,
   ],
