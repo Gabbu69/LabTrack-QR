@@ -4,7 +4,8 @@ returns void language plpgsql as $$ begin if condition is distinct from true the
 
 insert into auth.users(id,email,raw_user_meta_data,raw_app_meta_data) values
 ('e0000000-0000-4000-8000-000000000001','turnstile-custodian@test.invalid','{"full_name":"Turnstile Custodian"}','{"labtrack_staff_role":"custodian"}'),
-('e0000000-0000-4000-8000-000000000002','turnstile-student@test.invalid','{"full_name":"Turnstile Student","student_id":"TS-1"}','{}');
+('e0000000-0000-4000-8000-000000000002','turnstile-student@test.invalid','{"full_name":"Turnstile Student","student_id":"TS-1"}','{}'),
+('e0000000-0000-4000-8000-000000000003','turnstile-backup@test.invalid','{"full_name":"Backup Custodian"}','{"labtrack_staff_role":"custodian"}');
 update public.profiles set status='active',must_change_password=false where id::text like 'e0000000-%';
 insert into auth.sessions(id,user_id) values
 ('e1000000-0000-4000-8000-000000000001','e0000000-0000-4000-8000-000000000001'),
